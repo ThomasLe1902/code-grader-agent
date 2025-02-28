@@ -27,7 +27,7 @@ class AgentCodeGrader:
         return self.flow.compile()
 
 
-async def GradeCode(selected_files: list[str], criterias_list: list[str]):
+async def grade_code(selected_files: list[str], criterias_list: list[str]):
     """Process criteria evaluation using batch for multiple criteria or invoke for single criterion."""
     agent = AgentCodeGrader()()
 
@@ -47,5 +47,5 @@ async def GradeCode(selected_files: list[str], criterias_list: list[str]):
                 }
             )
         ]
-
+    
     return output

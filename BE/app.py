@@ -12,7 +12,7 @@ from utils.helper import (
 )
 from pydantic import BaseModel
 import uvicorn
-from agent.graph_flow import GradeCode
+from agent.graph_flow import grade_code
 
 app = FastAPI(docs_url="/")
 
@@ -59,7 +59,7 @@ async def grade_code_rt(body: GradeCodeRequest):
             detail="No valid files selected. Please select at least one file to grade.",
         )
 
-    output = await GradeCode(
+    output = await grade_code(
         file_paths,
         body.criterias_list,
     )

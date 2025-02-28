@@ -21,10 +21,10 @@ class AnaLyzeOutput(BaseModel):
     comment: Optional[str] = Field(
         ..., description="Comment for the code line need to be improved"
     )
-    criteria_eval: str = Field(..., description="Criteria evaluation for the code file")
+    criteria_eval: Optional[str] = Field(..., description="Criteria evaluation for the code file")
     status: int = Field(
         ...,
-        description="Status of the code file in range 1-3 (bad - acceptable - perfect)",
+        description="Status of the code file in range 1-4 (bad - not related - acceptable - perfect)",
     )
 
 
