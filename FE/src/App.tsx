@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_REPO_URL, EXTENSION_OPTIONS } from "./constant";
 import { GradingResult, TreeNode } from "./types";
 import { apiService } from "./api/service";
-import { Button, Card, Input, message, Select, Typography } from "antd";
+import { Button, Card, Input, message, Typography } from "antd";
 import FileTree from "./components/FileTree";
 import CriteriaInput from "./components/CriteriaInput";
 import GradingResultView from "./components/GradingResults";
-import { CloudDownloadOutlined, CodeOutlined } from "@ant-design/icons";
+import Header from "./layout/Header";
+import RepositoryConfig from "./components/RepositoryConfig";
 const { Title } = Typography;
 
 const App: React.FC = () => {
@@ -17,7 +18,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [gradeLoading, setGradeLoading] = useState(false);
   const [error, setError] = useState("");
-  const [gradeResult, setGradeResult] = useState<GradingResult | null>(null);
+  const [gradeResult, setGradeResult] = useState<GradingResult[] | []>([]);
+  const [projectDescription, setProjectDescription] = useState<string>("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>(
     EXTENSION_OPTIONS.map((option) => option.value)
   );
@@ -49,41 +51,72 @@ const App: React.FC = () => {
   }, []);
 
   const gradeCode = useCallback(async () => {
+    // Validate selected files
+    if (selectedFiles.length === 0) {
+      message.error({
+        content: "Please select at least one file to grade",
+        key: "file-selection",
+        duration: 3,
+      });
+      return;
+    }
+
+    // Validate criteria
     const validCriterias = criterias.filter(
       (criteria) => criteria.trim() !== ""
     );
-
-    if (selectedFiles.length === 0) {
-      message.error("Please select at least one file to grade");
-      return;
-    }
-
     if (validCriterias.length === 0) {
-      message.error("Please add at least one grading criteria");
+      message.error({
+        content: "Please add at least one grading criteria",
+        key: "criteria-validation",
+        duration: 3,
+      });
       return;
     }
+
+    // Show loading message
+    message.loading({
+      content: "Grading code in progress...",
+      key: "grading",
+      duration: 0,
+    });
 
     setGradeLoading(true);
     setError("");
 
-    const { data, error: gradeError } = await apiService.gradeCode(
-      selectedFiles,
-      validCriterias
-    );
+    try {
+      const { data, error: gradeError } = await apiService.gradeCode(
+        selectedFiles,
+        validCriterias,
+        projectDescription
+      );
 
-    if (data) {
-      console.log(data);
-
-      setGradeResult(data);
-      message.success("Code graded successfully");
-    } else if (gradeError) {
-      setError(gradeError);
-      message.error(gradeError);
+      if (data) {
+        setGradeResult(data);
+        message.success({
+          content: "Code graded successfully!",
+          key: "grading",
+          duration: 3,
+        });
+      } else if (gradeError) {
+        setError(gradeError);
+        message.error({
+          content: gradeError,
+          key: "grading",
+          duration: 3,
+        });
+      }
+    } catch (error) {
+      message.error({
+        content: "An unexpected error occurred",
+        key: "grading",
+        duration: 3,
+      });
+    } finally {
+      setGradeLoading(false);
     }
-    setGradeLoading(false);
   }, [selectedFiles, criterias]);
 
-  // Reset selected files when file tree changes
   useEffect(() => {
     setSelectedFiles([]);
   }, [fileTreeData]);
@@ -91,45 +124,16 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="container mx-auto max-w-6xl">
-        <header className="text-center mb-8">
-          <Title level={1} className="!text-4xl !text-blue-600 mb-2">
-            <CodeOutlined className="mr-2" />
-            Code Grading Assistant
-          </Title>
-          <p className="text-gray-600">Analyze and grade your code with AI</p>
-        </header>
+        <Header />
 
-        <Card className="mb-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="space-y-4">
-            <Input
-              size="large"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="Enter GitHub repository URL"
-              className="!rounded-lg"
-            />
-            <Select
-              size="large"
-              mode="multiple"
-              className="w-full"
-              placeholder="Select file extensions"
-              onChange={handleExtensionChange}
-              options={EXTENSION_OPTIONS}
-              defaultValue={selectedExtensions}
-            />
-            <Button
-              type="primary"
-              size="large"
-              icon={<CloudDownloadOutlined />}
-              onClick={fetchFileTreeData}
-              disabled={loading}
-              className="w-full bg-blue-500 hover:bg-blue-600"
-            >
-              {loading ? "Cloning Repository..." : "Clone Repository"}
-            </Button>
-          </div>
-        </Card>
-
+        <RepositoryConfig
+          repoUrl={repoUrl}
+          loading={loading}
+          selectedExtensions={selectedExtensions}
+          onRepoUrlChange={setRepoUrl}
+          onExtensionChange={handleExtensionChange}
+          onFetchFiles={fetchFileTreeData}
+        />
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600">{error}</p>
@@ -159,6 +163,14 @@ const App: React.FC = () => {
             title={<Title level={4}>Grading Criteria</Title>}
             className="shadow-sm hover:shadow-md transition-shadow"
           >
+            <Input.TextArea
+              size="large"
+              value={projectDescription}
+              onChange={(e) => setProjectDescription(e.target.value)}
+              placeholder="Enter project description (optional)"
+              className="!rounded-lg mb-4"
+              rows={4}
+            />
             <div className="space-y-4">
               <CriteriaInput
                 criterias={criterias}
@@ -167,9 +179,13 @@ const App: React.FC = () => {
               <Button
                 type="primary"
                 size="large"
-                className="w-full !bg-green-500 hover:!bg-green-600"
+                className="w-full !bg-green-500 hover:!bg-green-600 disabled:opacity-50"
                 onClick={gradeCode}
-                disabled={gradeLoading || selectedFiles.length === 0}
+                disabled={
+                  gradeLoading ||
+                  selectedFiles.length === 0 ||
+                  criterias.filter((c) => c.trim() !== "").length === 0
+                }
                 loading={gradeLoading}
               >
                 {gradeLoading ? "Grading Code..." : "Grade Selected Files"}
@@ -193,7 +209,7 @@ const App: React.FC = () => {
           </Card>
         )}
 
-        {gradeResult && <GradingResultView result={gradeResult} />}
+        {gradeResult && <GradingResultView results={gradeResult} />}
       </div>
     </div>
   );

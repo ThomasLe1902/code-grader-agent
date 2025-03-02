@@ -14,13 +14,19 @@ export const apiService = {
     }
   },
 
-  gradeCode: async (selectedFiles: string[], criteriasList: string[]) => {
+  gradeCode: async (
+    selectedFiles: string[],
+    criteriasList: string[],
+    projectDescription: string
+  ) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/grade-code/`, {
         selected_files: selectedFiles,
         criterias_list: criteriasList,
+        project_description: projectDescription
+
       });
-      return { data: response.data[0], error: null };
+      return { data: response.data, error: null };
     } catch (err) {
       return { data: null, error: "Failed to grade code" };
     }

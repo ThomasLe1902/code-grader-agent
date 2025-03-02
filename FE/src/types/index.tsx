@@ -6,8 +6,9 @@ export interface TreeNode {
 
 export interface FileResult {
   file_name: string;
-  comment: string;
+  comment: string | null;
   criteria_eval: string;
+  status: number;
 }
 
 export interface GradingResult {
