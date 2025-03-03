@@ -1,20 +1,42 @@
 import React, { useState } from "react";
-import { Modal, Button, Table, Tag, Tabs } from "antd";
+import { Modal, Button, Table, Tag, Tabs, Tooltip } from "antd";
 import { marked } from "marked";
 import { GradingResult } from "../../types";
 
-type StatusConfig = {
-  [key: number]: {
-    text: string;
-    color: string;
-  };
+type Status = {
+  text: string;
+  color: string;
+  description: string;
 };
-
+type StatusConfig = {
+  [key: number]: Status;
+};
 const statusConfig: StatusConfig = {
-  1: { text: "BAD", color: "red" },
-  2: { text: "ACCEPTABLE", color: "orange" },
-  3: { text: "NOT RELATED", color: "warning" },
-  4: { text: "PERFECT", color: "green" },
+  1: {
+    text: "Poor",
+    color: "red",
+    description: "Major issues, fails multiple criteria",
+  },
+  2: {
+    text: "Below Average",
+    color: "volcano",
+    description: "Significant improvements needed",
+  },
+  3: {
+    text: "Average",
+    color: "orange",
+    description: "Meets minimum standards",
+  },
+  4: {
+    text: "Good",
+    color: "green",
+    description: "Minor issues only",
+  },
+  5: {
+    text: "Excellent",
+    color: "cyan",
+    description: "Meets or exceeds all criteria",
+  },
 };
 
 const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
@@ -55,7 +77,11 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
       key: "status",
       render: (status: number) => {
         const config = statusConfig[status];
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return (
+          <Tooltip title={config.description}>
+            <Tag color={config.color}>{config.text}</Tag>
+          </Tooltip>
+        );
       },
     },
     {
@@ -73,7 +99,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
   const tabItems = results.map((result, index) => {
     return {
       key: index.toString(),
-      label: `Result ${index + 1}`,
+      label: `Criteria ${index + 1}`,
       children: (
         <div>
           <Table

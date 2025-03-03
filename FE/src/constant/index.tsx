@@ -1,6 +1,6 @@
 export const API_BASE_URL = "http://127.0.0.1:8000";
 export const DEFAULT_REPO_URL =
-  "https://github.com/tharain/react-tree-file-system";
+  "https://github.com/lmhdev/web-dev-tech-assessment";
 export const EXTENSION_OPTIONS = [
   { label: "Python", value: ".py" },
   { label: "JavaScript", value: ".js" },
