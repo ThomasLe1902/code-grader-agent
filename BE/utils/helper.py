@@ -4,6 +4,7 @@ from git import Repo
 
 REPO_FOLDER = "repo"
 
+
 def list_code_files_in_repository(
     repo_url: str, extensions: List[str]
 ) -> Iterable[str]:
@@ -28,14 +29,14 @@ def clone_github_repository(repo_url: str) -> str:
 
 def read_file(file_path: str, from_repo: bool = True) -> str:
     """Read the contents of a file.
-    
+
     Args:
         file_path (str): Path to the file
         from_repo (bool): Whether to read from repository folder
-        
+
     Returns:
         str: Contents of the file
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist
         IOError: If there's an error reading the file
@@ -45,7 +46,7 @@ def read_file(file_path: str, from_repo: bool = True) -> str:
             full_path = os.path.join(REPO_FOLDER, file_path)
         else:
             full_path = file_path
-        with open(full_path, "r", encoding='utf-8') as file:
+        with open(full_path, "r", encoding="utf-8") as file:
             return file.read()
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {full_path}")
@@ -67,7 +68,7 @@ def create_file_tree(code_files: Iterable[str]) -> List[dict]:
     """Create a tree structure from the list of code files, removing the 'repo' prefix."""
     file_tree = []
     code_files = sorted(code_files)
-    
+
     for file in code_files:
         # Remove the 'repo/' prefix from file paths
         file = file.replace(REPO_FOLDER + os.sep, "")
@@ -75,9 +76,7 @@ def create_file_tree(code_files: Iterable[str]) -> List[dict]:
         parts = file.split(os.sep)
         current_level = file_tree
         for i, part in enumerate(parts):
-            existing = [
-                node for node in current_level if node["label"] == part
-            ]
+            existing = [node for node in current_level if node["label"] == part]
             if existing:
                 current_level = existing[0].setdefault("children", [])
             else:
@@ -112,3 +111,45 @@ def is_file_path(path: str) -> bool:
 def filter_file_paths(paths: List[str]) -> List[str]:
     """Filter a list of paths to include only file paths, excluding directory paths."""
     return [path for path in paths if is_file_path(path)]
+
+
+def build_tree(paths: list[str]) -> str:
+    """Build a visual tree structure from a list of paths."""
+    tree = {}
+    for path in paths:
+        parts = path.split(os.sep)
+        node = tree
+        for part in parts:
+            node = node.setdefault(part, {})
+
+    return tree_to_string(tree)
+
+def tree_to_string(tree: dict, prefix: str = "", is_last: bool = True) -> str:
+    """Convert a tree structure to a string representation with visual connectors.
+    
+    Args:
+        tree: Dictionary representing the tree structure
+        prefix: Current line prefix for drawing branches
+        is_last: Whether current node is the last sibling
+    
+    Returns:
+        String representation of the tree with visual connectors
+    """
+    lines = []
+    items = list(tree.items())
+    
+    for i, (name, subtree) in enumerate(items):
+        is_last_item = i == len(items) - 1
+        connector = "└── " if is_last_item else "├── "
+        lines.append(prefix + connector + name)
+        
+        if isinstance(subtree, dict):
+            extension = "    " if is_last_item else "│   "
+            subtree_lines = tree_to_string(
+                subtree,
+                prefix + extension,
+                is_last_item
+            )
+            lines.append(subtree_lines)
+    
+    return "\n".join(filter(None, lines))

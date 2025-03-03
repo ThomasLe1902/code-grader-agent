@@ -1,5 +1,7 @@
 from langchain_openai import AzureChatOpenAI
 from config.prompt import (
+    project_description_generator_prompt,
+    check_relevant_criteria_prompt,
     anaylize_code_files_prompt,
     grade_code_across_review_prompt,
     final_grade_prompt,
@@ -17,17 +19,30 @@ llm_4o_mini = AzureChatOpenAI(
 )
 
 
+class CheckRelevantCriteriaOutput(BaseModel):
+    relevant_criteria: int = Field(
+        ..., description="1 if the criteria is relevant, 0 if not relevant"
+    )
+
+
 class AnaLyzeOutput(BaseModel):
     comment: Optional[str] = Field(
         ..., description="Comment for the code line need to be improved"
     )
-    criteria_eval: Optional[str] = Field(..., description="Criteria evaluation for the code file")
+    criteria_eval: Optional[str] = Field(
+        ..., description="Criteria evaluation for the code file"
+    )
     status: int = Field(
         ...,
-        description="Status of the code file in range 1-4 (bad - not related - acceptable - perfect)",
+        description="Status of the code file: 1=Poor, 2=Below Average, 3=Average, 4=Good, 5=Excellent"
     )
 
 
+chain_project_description_generator = project_description_generator_prompt | llm_4o_mini
+chain_check_relevant_criteria = (
+    check_relevant_criteria_prompt
+    | llm_4o_mini.with_structured_output(CheckRelevantCriteriaOutput)
+)
 chain_analyze_code_file = (
     anaylize_code_files_prompt | llm_4o_mini.with_structured_output(AnaLyzeOutput)
 )
