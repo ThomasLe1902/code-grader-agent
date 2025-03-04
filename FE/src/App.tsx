@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_REPO_URL, EXTENSION_OPTIONS } from "./constant";
 import { GradingResult, TreeNode } from "./types";
 import { apiService } from "./api/service";
-import { Button, Card, Input, message, Typography } from "antd";
+import { Button, Card, Input, message, Typography, Badge, Drawer } from "antd";
+import { FileOutlined, EyeOutlined } from "@ant-design/icons";
 import FileTree from "./components/FileTree";
 import CriteriaInput from "./components/CriteriaInput";
 import GradingResultView from "./components/GradingResults";
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>(
     EXTENSION_OPTIONS.map((option) => option.value)
   );
+  const [isFilesDrawerOpen, setIsFilesDrawerOpen] = useState(false);
 
   const fetchFileTreeData = useCallback(async () => {
     setLoading(true);
@@ -48,6 +50,14 @@ const App: React.FC = () => {
 
   const handleFileSelection = useCallback((files: string[]) => {
     setSelectedFiles(files);
+  }, []);
+
+  const showSelectedFiles = useCallback(() => {
+    setIsFilesDrawerOpen(true);
+  }, []);
+
+  const closeFilesDrawer = useCallback(() => {
+    setIsFilesDrawerOpen(false);
   }, []);
 
   const gradeCode = useCallback(async () => {
@@ -115,7 +125,7 @@ const App: React.FC = () => {
     } finally {
       setGradeLoading(false);
     }
-  }, [selectedFiles, criterias]);
+  }, [selectedFiles, criterias, projectDescription]);
 
   useEffect(() => {
     setSelectedFiles([]);
@@ -144,6 +154,20 @@ const App: React.FC = () => {
           <Card
             title={<Title level={4}>File Tree</Title>}
             className="shadow-sm hover:shadow-md transition-shadow"
+            extra={
+              selectedFiles.length > 0 && (
+                <Badge count={selectedFiles.length} color="blue">
+                  <Button 
+                    icon={<EyeOutlined />} 
+                    onClick={showSelectedFiles}
+                    type="primary"
+                    ghost
+                  >
+                    Selected Files
+                  </Button>
+                </Badge>
+              )
+            }
           >
             <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
               {fileTreeData.length > 0 ? (
@@ -194,20 +218,33 @@ const App: React.FC = () => {
           </Card>
         </div>
 
-        {selectedFiles.length > 0 && (
-          <Card
-            title={<Title level={4}>Selected Files</Title>}
-            className="mb-6 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <ul className="list-disc pl-5 space-y-1">
+        {/* Drawer for selected files */}
+        <Drawer
+          title={
+            <div className="flex items-center">
+              <FileOutlined className="mr-2" />
+              <span>Selected Files ({selectedFiles.length})</span>
+            </div>
+          }
+          placement="right"
+          onClose={closeFilesDrawer}
+          open={isFilesDrawerOpen}
+          width={400}
+        >
+          {selectedFiles.length > 0 ? (
+            <ul className="list-disc pl-5 space-y-2">
               {selectedFiles.map((file) => (
-                <li key={file} className="text-gray-700">
+                <li key={file} className="text-gray-700 py-1 border-b border-gray-100">
                   {file}
                 </li>
               ))}
             </ul>
-          </Card>
-        )}
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">No files selected</p>
+            </div>
+          )}
+        </Drawer>
 
         {gradeResult && <GradingResultView results={gradeResult} />}
       </div>
