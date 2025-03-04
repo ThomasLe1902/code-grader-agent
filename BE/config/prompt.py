@@ -59,9 +59,9 @@ Analyze this code against specific criteria as an expert reviewer.
                                                           
 ## Review Format
 
-1. Issues (leave blank if none):
-    line X: [code snippet] - [specific issue]
-    line Y: [code snippet] - [specific issue]
+1. Comments (leave blank if none):
+    line X(number): [code snippet]  #[specific issue, comment on issue]
+    line Y(number): [code snippet]  #[specific issue, comment on issue]
 2. Criteria Analysis:
 For each criterion, provide concise assessment with specific examples. And briefly suggest improvements to increase rating score.
 3. Rating:

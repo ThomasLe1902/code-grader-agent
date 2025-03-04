@@ -32,7 +32,7 @@ class AnaLyzeOutput(BaseModel):
     criteria_eval: Optional[str] = Field(
         ..., description="Criteria evaluation for the code file"
     )
-    status: int = Field(
+    rating: int = Field(
         ...,
         description="Status of the code file: 1=Poor, 2=Below Average, 3=Average, 4=Good, 5=Excellent"
     )

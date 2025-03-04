@@ -8,7 +8,7 @@ export interface FileResult {
   file_name: string;
   comment: string | null;
   criteria_eval: string;
-  status: number;
+  rating: number;
 }
 
 export interface GradingResult {

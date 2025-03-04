@@ -2,7 +2,6 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.graph.state import CompiledStateGraph
 from .graph_function import State
 from .graph_function import (
-    start_flow_fn,
     project_description_generator_fn,
     check_relevant_criteria_fn,
     analyze_code_file_fn,

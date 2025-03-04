@@ -72,11 +72,11 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
       render: (text: string) => text.split("/").pop(),
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: number) => {
-        const config = statusConfig[status];
+      title: "Rating",
+      dataIndex: "rating",
+      key: "rating",
+      render: (rating: number) => {
+        const config = statusConfig[rating];
         return (
           <Tooltip title={config.description}>
             <Tag color={config.color}>{config.text}</Tag>

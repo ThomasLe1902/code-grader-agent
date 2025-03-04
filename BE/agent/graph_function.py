@@ -20,11 +20,6 @@ class State(TypedDict):
     grade_criteria: str
 
 
-def start_flow_fn(state: State):
-    print("Start flow")
-    return {}
-
-
 async def project_description_generator_fn(state: State):
     selected_files = state["selected_files"]
     file_tree = build_tree(selected_files)
@@ -84,7 +79,7 @@ async def analyze_code_file_fn(state: State):
             "file_name": data["file_name"],
             "comment": result.comment,
             "criteria_eval": result.criteria_eval,
-            "status": result.status,
+            "rating": result.rating,
         }
         for data, result in zip(input_data, analysis_results)
     ]
