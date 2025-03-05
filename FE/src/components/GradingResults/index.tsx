@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Modal, Button, Table, Tag, Tabs, Tooltip } from "antd";
 import { marked } from "marked";
 import { GradingResult } from "../../types";
+import * as XLSX from "xlsx";
+import { DownloadOutlined } from "@ant-design/icons";
 
 type Status = {
   text: string;
@@ -95,13 +97,100 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     },
   ];
 
-  // Create tab items from the results array
+  const exportToExcel = () => {
+    const workbook = XLSX.utils.book_new();
+
+    results.forEach((currentResults, index) => {
+      if (!currentResults || !currentResults.analyze_code_result) {
+        return;
+      }
+      const data = currentResults.analyze_code_result.map((item) => {
+        const fileName = item.file_name.split("/").pop() || item.file_name;
+        const ratingText =
+          statusConfig[item.rating]?.text || String(item.rating);
+        const plainTextEval = item.criteria_eval
+          .replace(/<[^>]*>?/gm, "")
+          .replace(/\*\*/g, "");
+
+        return {
+          "File Name": fileName,
+          Rating: ratingText,
+          "Rating Value": item.rating,
+          Comments: item.comment,
+          Evaluation: plainTextEval,
+        };
+      });
+      data.push({
+        "File Name": "",
+        Rating: "",
+        "Rating Value": 0,
+        Comments: "",
+        Evaluation: "",
+      });
+      const criteriaDetailsRow = {
+        "File Name": "Grading Criteria",
+        Rating: "",
+        "Rating Value": 0,
+        Comments: currentResults.grade_criteria
+          ? currentResults.grade_criteria
+              .replace(/\*\*/g, "")
+              .replace(/#/g, "")
+              .replace(/<[^>]*>?/gm, "")
+          : "No detailed criteria available",
+        Evaluation: "",
+      };
+      data.push(criteriaDetailsRow);
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const wscols = [
+        { wch: 30 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 40 },
+        { wch: 60 },
+      ];
+
+      worksheet["!cols"] = wscols;
+
+      if (worksheet["!rows"]) {
+        worksheet["!rows"][data.length - 2] = {
+          hpt: 10,
+          hpx: 10,
+        };
+
+        worksheet["!rows"][data.length - 1] = {
+          hpt: 30,
+          hpx: 30,
+        };
+      }
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        `Criteria ${index + 1}`
+      );
+    });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const fileName = `grading_results_${timestamp}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+  };
+
   const tabItems = results.map((result, index) => {
     return {
       key: index.toString(),
       label: `Criteria ${index + 1}`,
       children: (
         <div>
+          <div className="flex justify-end mb-4">
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={exportToExcel}
+            >
+              Export to Excel
+            </Button>
+          </div>
           <Table
             columns={columns}
             dataSource={result.analyze_code_result}

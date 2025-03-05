@@ -1,8 +1,10 @@
 import os
 from typing import List, Iterable
 from git import Repo
+from loguru import logger
 
 REPO_FOLDER = "repo"
+import tiktoken
 
 
 def list_code_files_in_repository(
@@ -62,6 +64,36 @@ def get_all_files_in_directory(path: str, extensions: List[str]) -> List[str]:
             if any(filename.endswith(ext) for ext in extensions):
                 files.append(os.path.join(root, filename))
     return files
+
+
+def count_token(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+
+def input_preparation(selected_files, project_description, criterias, token_limit=4000):
+    filtered_data = []
+    filtered_files = []
+    for file_path in selected_files:
+        content = read_file(file_path)
+        token_count = count_token(content)
+        if token_count <= token_limit:
+            filtered_files.append(file_path)
+            filtered_data.append(
+                {
+                    "criterias": criterias,
+                    "file_name": file_path,
+                    "code": content,
+                    "project_description": project_description,
+                }
+            )
+        else:
+            logger.warning(
+                f"Skipping {file_path}: Token count {token_count} exceeds limit of 4000"
+            )
+    return filtered_data, filtered_files
 
 
 def create_file_tree(code_files: Iterable[str]) -> List[dict]:
@@ -124,32 +156,29 @@ def build_tree(paths: list[str]) -> str:
 
     return tree_to_string(tree)
 
+
 def tree_to_string(tree: dict, prefix: str = "", is_last: bool = True) -> str:
     """Convert a tree structure to a string representation with visual connectors.
-    
+
     Args:
         tree: Dictionary representing the tree structure
         prefix: Current line prefix for drawing branches
         is_last: Whether current node is the last sibling
-    
+
     Returns:
         String representation of the tree with visual connectors
     """
     lines = []
     items = list(tree.items())
-    
+
     for i, (name, subtree) in enumerate(items):
         is_last_item = i == len(items) - 1
         connector = "└── " if is_last_item else "├── "
         lines.append(prefix + connector + name)
-        
+
         if isinstance(subtree, dict):
             extension = "    " if is_last_item else "│   "
-            subtree_lines = tree_to_string(
-                subtree,
-                prefix + extension,
-                is_last_item
-            )
+            subtree_lines = tree_to_string(subtree, prefix + extension, is_last_item)
             lines.append(subtree_lines)
-    
+
     return "\n".join(filter(None, lines))

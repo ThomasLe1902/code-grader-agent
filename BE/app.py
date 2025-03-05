@@ -10,7 +10,9 @@ from utils.helper import (
     list_code_files_in_repository,
     create_file_tree,
     filter_file_paths,
+    build_tree,
 )
+from agent.graph_function import chain_project_description_generator
 from pydantic import BaseModel, Field, conlist
 import uvicorn
 from agent.graph_flow import grade_code
@@ -26,7 +28,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# List of file extensions to search for
+
+class ProjectDescription(BaseModel):
+    selected_files: List[str] = Field("None")
+
+
+@app.post("/project_description_generation")
+async def project_description_generation(body: ProjectDescription):
+    file_paths = filter_file_paths(body.selected_files)
+    file_tree = build_tree(file_paths)
+    response = await chain_project_description_generator.ainvoke(
+        {"file_tree": file_tree}
+    )
+    return JSONResponse(content=response.content)
 
 
 class RepoURL(BaseModel):

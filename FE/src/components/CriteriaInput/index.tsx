@@ -6,7 +6,6 @@ interface CriteriaInputProps {
   criterias: string[];
   setCriterias: React.Dispatch<React.SetStateAction<string[]>>;
 }
-
 const CriteriaInput: React.FC<CriteriaInputProps> = ({
   criterias,
   setCriterias,

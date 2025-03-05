@@ -1,58 +1,75 @@
 SUPPORTED_EXTENSIONS = [
     # Python
-    ".py", ".pyx", ".pyi", ".pyw",
-    
+    ".py",
+    ".pyx",
+    ".pyi",
+    ".pyw",
     # JavaScript/TypeScript
-    ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
-    
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".mjs",
+    ".cjs",
     # Web
-    ".html", ".htm", ".css", ".scss", ".sass", ".less",
-    
+    ".html",
+    ".htm",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
     # Java
-    ".java", ".class", ".jar",
-    
+    ".java",
+    ".class",
+    ".jar",
     # C/C++
-    ".c", ".cpp", ".h", ".hpp",
-    
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
     # C#
-    ".cs", ".csx",
-    
+    ".cs",
+    ".csx",
     # Ruby
-    ".rb", ".erb",
-    
+    ".rb",
+    ".erb",
     # PHP
-    ".php", ".phtml",
-    
+    ".php",
+    ".phtml",
     # Swift
     ".swift",
-    
     # Go
     ".go",
-    
     # Rust
     ".rs",
-    
     # Shell Scripts
-    ".sh", ".bash", ".zsh",
-    
+    ".sh",
+    ".bash",
+    ".zsh",
     # Documentation
-    ".md", ".rst",
-    
+    ".md",
+    ".rst",
     # Configuration
-    ".json", ".yaml", ".yml", ".toml", ".ini",
-    
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
     # SQL
     ".sql",
-    
     # XML
-    ".xml", ".xhtml",
-    
+    ".xml",
+    ".xhtml",
     # Docker
-    ".dockerfile", ".docker",
-    
+    ".dockerfile",
+    ".docker",
     # Kotlin
-    ".kt", ".kts",
-    
+    ".kt",
+    ".kts",
     # Dart/Flutter
-    ".dart"
+    ".dart",
+    # Other
+    ".md",
+    ".txt",
+    ".env",
 ]

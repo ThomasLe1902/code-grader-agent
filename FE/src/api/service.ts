@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { API_BASE_URL } from "../constant";
 
 export const apiService = {
@@ -23,12 +23,30 @@ export const apiService = {
       const response = await axios.post(`${API_BASE_URL}/grade-code/`, {
         selected_files: selectedFiles,
         criterias_list: criteriasList,
-        project_description: projectDescription
-
+        project_description: projectDescription,
       });
       return { data: response.data, error: null };
     } catch (err) {
       return { data: null, error: "Failed to grade code" };
+    }
+  },
+  generateProjectDescription: async (selectedFiles: string[]) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/project_description_generation`,
+        {
+          selected_files: selectedFiles,
+        }
+      );
+      return { data: response.data, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof AxiosError
+            ? error.response?.data?.detail
+            : "Failed to generate description",
+      };
     }
   },
 };

@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
-import { DEFAULT_REPO_URL, EXTENSION_OPTIONS } from "./constant";
+import {
+  DEFAULT_CRITERIA_FE,
+  DEFAULT_CRITERIA_BE,
+  DEFAULT_REPO_URL,
+  EXTENSION_OPTIONS,
+} from "./constant";
 import { GradingResult, TreeNode } from "./types";
 import { apiService } from "./api/service";
-import { Button, Card, Input, message, Typography, Badge, Drawer } from "antd";
+import {
+  Button,
+  Card,
+  Input,
+  message,
+  Typography,
+  Badge,
+  Drawer,
+  Space,
+} from "antd";
 import { FileOutlined, EyeOutlined } from "@ant-design/icons";
 import FileTree from "./components/FileTree";
 import CriteriaInput from "./components/CriteriaInput";
@@ -15,7 +29,7 @@ const App: React.FC = () => {
   const [repoUrl, setRepoUrl] = useState(DEFAULT_REPO_URL);
   const [fileTreeData, setFileTreeData] = useState<TreeNode[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [criterias, setCriterias] = useState<string[]>([""]);
+  const [criterias, setCriterias] = useState<string[]>(DEFAULT_CRITERIA_FE);
   const [loading, setLoading] = useState(false);
   const [gradeLoading, setGradeLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +61,15 @@ const App: React.FC = () => {
   const handleExtensionChange = useCallback((value: string[]) => {
     setSelectedExtensions(value);
   }, []);
+  const handleSetFECriteria = useCallback(() => {
+    setCriterias(DEFAULT_CRITERIA_FE);
+    message.success("Frontend criteria loaded");
+  }, []);
+
+  const handleSetBECriteria = useCallback(() => {
+    setCriterias(DEFAULT_CRITERIA_BE);
+    message.success("Backend criteria loaded");
+  }, []);
 
   const handleFileSelection = useCallback((files: string[]) => {
     setSelectedFiles(files);
@@ -59,7 +82,41 @@ const App: React.FC = () => {
   const closeFilesDrawer = useCallback(() => {
     setIsFilesDrawerOpen(false);
   }, []);
+  const generateDescription = useCallback(async () => {
+    if (selectedFiles.length === 0) {
+      message.error({
+        content: "Please select files first",
+        key: "description-generation",
+        duration: 3,
+      });
+      return;
+    }
 
+    message.loading({
+      content: "Generating project description...",
+      key: "description-generation",
+      duration: 0,
+    });
+
+    const { data, error } = await apiService.generateProjectDescription(
+      selectedFiles
+    );
+
+    if (data) {
+      setProjectDescription(data);
+      message.success({
+        content: "Description generated successfully!",
+        key: "description-generation",
+        duration: 3,
+      });
+    } else if (error) {
+      message.error({
+        content: error,
+        key: "description-generation",
+        duration: 3,
+      });
+    }
+  }, [selectedFiles]);
   const gradeCode = useCallback(async () => {
     // Validate selected files
     if (selectedFiles.length === 0) {
@@ -157,8 +214,8 @@ const App: React.FC = () => {
             extra={
               selectedFiles.length > 0 && (
                 <Badge count={selectedFiles.length} color="blue">
-                  <Button 
-                    icon={<EyeOutlined />} 
+                  <Button
+                    icon={<EyeOutlined />}
                     onClick={showSelectedFiles}
                     type="primary"
                     ghost
@@ -186,15 +243,41 @@ const App: React.FC = () => {
           <Card
             title={<Title level={4}>Grading Criteria</Title>}
             className="shadow-sm hover:shadow-md transition-shadow"
+            extra={
+              <Space>
+                <Button
+                  type="default"
+                  size="small"
+                  onClick={handleSetFECriteria}
+                >
+                  Use FE Criteria
+                </Button>
+                <Button
+                  type="default"
+                  size="small"
+                  onClick={handleSetBECriteria}
+                >
+                  Use BE Criteria
+                </Button>
+              </Space>
+            }
           >
-            <Input.TextArea
-              size="large"
-              value={projectDescription}
-              onChange={(e) => setProjectDescription(e.target.value)}
-              placeholder="Enter project description (optional)"
-              className="!rounded-lg mb-4"
-              rows={4}
-            />
+            <div className="flex gap-2 mb-4">
+              <Input.TextArea
+                size="large"
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
+                placeholder="Enter project description (optional)"
+                className="!rounded-lg"
+                rows={4}
+              />
+              <Button
+                onClick={generateDescription}
+                disabled={selectedFiles.length === 0}
+              >
+                Generate
+              </Button>
+            </div>
             <div className="space-y-4">
               <CriteriaInput
                 criterias={criterias}
@@ -234,7 +317,10 @@ const App: React.FC = () => {
           {selectedFiles.length > 0 ? (
             <ul className="list-disc pl-5 space-y-2">
               {selectedFiles.map((file) => (
-                <li key={file} className="text-gray-700 py-1 border-b border-gray-100">
+                <li
+                  key={file}
+                  className="text-gray-700 py-1 border-b border-gray-100"
+                >
                   {file}
                 </li>
               ))}

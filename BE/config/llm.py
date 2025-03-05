@@ -34,7 +34,7 @@ class AnaLyzeOutput(BaseModel):
     )
     rating: int = Field(
         ...,
-        description="Status of the code file: 1=Poor, 2=Below Average, 3=Average, 4=Good, 5=Excellent"
+        description="Status of the code file: 1=Poor, 2=Below Average, 3=Average, 4=Good, 5=Excellent",
     )
 
 

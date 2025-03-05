@@ -20,30 +20,33 @@ Create a 3-5 sentence description that clearly identifies the project's nature, 
 
 check_relevant_criteria_prompt = PromptTemplate.from_template(
     """
-Assess if this code file is relevant to the given evaluation criteria.
+Evaluate Code Relevance to Criteria Scope
 
-Project Description:
-{project_description}
-                                                              
-File: {file_name}
-                                                              
-Code:
+Criteria: {criterias}
+
+Code Snippet:
 ```
 {code}
 ```
 
+Strict Relevance Assessment:
+1. Direct Scope Check:
+   - Does the code EXPLICITLY address ANY of the specified criteria?
+   - Is the code type/technology mentioned in criteria?
 
-Criteria:
-{criterias}
+2. Immediate Disqualification Conditions:
+   - Code unrelated to ANY criteria
+   - No matching technology or evaluation domain
 
-Instructions:
-1. Identify key code elements present (functions, classes, tests, etc.)
-2. Determine which criteria directly apply to these elements
-3. Note: All code files can be evaluated for standards like naming conventions, but specialized criteria (testing, security) only apply to relevant files
+Output Rules:
+- 1 = Code DIRECTLY in evaluation scope
+- 0 = Code OUTSIDE evaluation scope
 
-Output ONLY:
-1 - if file can be meaningfully evaluated against ≥50% of criteria
-0 - if file can be meaningfully evaluated against <50% of criteria
+Key Decision Factors:
+- Precise criteria match
+- Technology alignment
+- Direct relevance
+
 """
 )
 
@@ -60,10 +63,12 @@ Analyze this code against specific criteria as an expert reviewer.
 ## Review Format
 
 1. Comments (leave blank if none):
-    line X(number): [code snippet]  #[specific issue, comment on issue]
-    line Y(number): [code snippet]  #[specific issue, comment on issue]
+    line X(number): [code snippet]  #[specific issue, comment on issue briefly suggest improvements to increase rating score.]
+    line Y(number): [code snippet]  #[specific issue, comment on issue briefly suggest improvements to increase rating score.]
+    
 2. Criteria Analysis:
-For each criterion, provide concise assessment with specific examples. And briefly suggest improvements to increase rating score.
+For each criterion, provide concise assessment with specific examples.
+
 3. Rating:
 - 1: Poor (major issues, fails multiple criteria)
 - 2: Below Average (significant improvements needed)

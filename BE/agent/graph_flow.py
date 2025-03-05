@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, END, START
 from langgraph.graph.state import CompiledStateGraph
-from .graph_function import State
+from .graph_function import State, ParentGraphState
 from .graph_function import (
     project_description_generator_fn,
     check_relevant_criteria_fn,
@@ -63,6 +63,50 @@ class AgentCodeGrader:
         self.node()
         self.edge()
         return self.flow.compile()
+
+
+# async def agent_processing(state: ParentGraphState):
+#     selected_files = state["selected_files"]
+#     criterias_list = state["criterias_list"]
+#     project_description = state["project_description"]
+#     agent_single_criteria = AgentCodeGrader()()
+#     if len(criterias_list) > 1:
+#         output = await agent_single_criteria.abatch(
+#             [
+#                 {
+#                     "selected_files": selected_files,
+#                     "criterias": criterias,
+#                     "project_description": project_description,
+#                 }
+#                 for criterias in criterias_list
+#             ]
+#         )
+#     else:
+#         output = [
+#             await agent_single_criteria.ainvoke(
+#                 {
+#                     "selected_files": selected_files,
+#                     "criterias": criterias_list[0],
+#                     "project_description": project_description,
+#                 }
+#             )
+#         ]
+
+#     return {"output": output}
+
+
+# class AgentCodeGraderMultiCriterias:
+#     def __init__(self):
+#         self.flow = StateGraph(State)
+
+#     def node(self):
+#         self.flow.add_node(
+#             "project_description_generator", project_description_generator_fn
+#         )
+#         self.flow.add_node("age")
+
+#     def edge(self):
+#         self.flow.add_edge
 
 
 async def grade_code(
