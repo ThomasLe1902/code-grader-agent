@@ -26,11 +26,11 @@ class CheckRelevantCriteriaOutput(BaseModel):
 
 
 class AnaLyzeOutput(BaseModel):
-    comment: Optional[str] = Field(
-        ..., description="Comment for the code line need to be improved"
+    comment: str = Field(
+        ..., description="Comment for the code line need to be improved. Return in Markdown text"
     )
-    criteria_eval: Optional[str] = Field(
-        ..., description="Criteria evaluation for the code file"
+    criteria_eval: str = Field(
+        ..., description="Criteria evaluation for the code file. Return in Markdown text"
     )
     rating: int = Field(
         ...,

@@ -1,9 +1,16 @@
 import React, { useState } from "react";
-import { Modal, Button, Table, Tag, Tabs, Tooltip } from "antd";
+import { Modal, Button, Table, Tag, Tabs, Tooltip, message } from "antd";
 import { marked } from "marked";
 import { GradingResult } from "../../types";
 import * as XLSX from "xlsx";
-import { DownloadOutlined } from "@ant-design/icons";
+import {
+  CheckCircleOutlined,
+  CodeOutlined,
+  CommentOutlined,
+  DownloadOutlined,
+  FileOutlined,
+} from "@ant-design/icons";
+import { apiService } from "../../api/service";
 
 type Status = {
   text: string;
@@ -51,6 +58,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     criteria_eval: string;
   } | null>(null);
   const [activeTabKey, setActiveTabKey] = useState<string>("0");
+  const [codeContent, setCodeContent] = useState<string>("");
 
   const handleViewDetails = (fileResult: {
     file_name: string;
@@ -59,11 +67,29 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
   }) => {
     setSelectedFile(fileResult);
     setIsModalVisible(true);
+    // Reset code content each time the modal opens.
+    setCodeContent("");
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
     setSelectedFile(null);
+    setCodeContent("");
+  };
+
+  // New function to call the backend and fetch code content.
+  const handleShowCode = async () => {
+    if (selectedFile) {
+      const { data, error } = await apiService.getCodeContent(
+        selectedFile.file_name
+      );
+
+      if (data) {
+        setCodeContent(data);
+      } else if (error) {
+        message.error(error);
+      }
+    }
   };
 
   const columns = [
@@ -71,7 +97,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
       title: "File Name",
       dataIndex: "file_name",
       key: "file_name",
-      render: (text: string) => text.split("/").pop(),
+      render: (text: string) => text,
     },
     {
       title: "Rating",
@@ -218,6 +244,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
   const handleTabChange = (key: string) => {
     setActiveTabKey(key);
   };
+
   return (
     <div className="mt-6">
       <h3 className="text-lg font-medium mb-4">Grading Results</h3>
@@ -233,23 +260,83 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
 
           {selectedFile && (
             <Modal
-              title={selectedFile.file_name.split("/").pop()}
+              title={
+                <div className="flex items-center space-x-2 text-lg">
+                  <FileOutlined className="text-blue-500" />
+                  <span className="font-semibold">
+                    {selectedFile.file_name}
+                  </span>
+                </div>
+              }
               open={isModalVisible}
               onCancel={handleCancel}
+              width="90%"
+              style={{ top: 20 }}
+              className="code-review-modal"
               footer={[
+                <Button
+                  key="showCode"
+                  type="primary"
+                  icon={<CodeOutlined />}
+                  onClick={handleShowCode}
+                  disabled={codeContent ? true : false}
+                  className="!bg-blue-500 hover:!bg-blue-600"
+                >
+                  View Source Code
+                </Button>,
                 <Button key="back" onClick={handleCancel}>
                   Close
                 </Button>,
               ]}
             >
-              <div className="font-medium text-xl">Comments</div>
-              <p>{selectedFile.comment || "No comments available."}</p>
-              <div className="font-medium text-xl">Evaluation</div>
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: marked(selectedFile.criteria_eval),
-                }}
-              />
+              <div className="flex flex-col space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <CommentOutlined className="text-green-500 text-xl" />
+                      <h3 className="font-semibold text-xl">Comments</h3>
+                    </div>
+                    <div className="prose max-w-none">
+                      {selectedFile.comment || "No comments available."}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <CheckCircleOutlined className="text-blue-500 text-xl" />
+                      <h3 className="font-semibold text-xl">Evaluation</h3>
+                    </div>
+                    <div
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: marked(selectedFile.criteria_eval),
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {codeContent && (
+                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <CodeOutlined className="text-purple-500 text-xl" />
+                      <h3 className="font-semibold text-xl">Source Code</h3>
+                    </div>
+                    <pre
+                      className="w-full overflow-x-auto bg-gray-50 rounded-lg"
+                      style={{
+                        padding: "1.25rem",
+                        maxHeight: "600px",
+                        fontSize: "0.875rem",
+                        lineHeight: "1.5",
+                        fontFamily:
+                          "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                      }}
+                    >
+                      <code>{codeContent}</code>
+                    </pre>
+                  </div>
+                )}
+              </div>
             </Modal>
           )}
         </>

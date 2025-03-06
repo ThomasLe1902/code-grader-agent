@@ -11,6 +11,7 @@ from utils.helper import (
     create_file_tree,
     filter_file_paths,
     build_tree,
+    read_file,
 )
 from agent.graph_function import chain_project_description_generator
 from pydantic import BaseModel, Field, conlist
@@ -41,6 +42,12 @@ async def project_description_generation(body: ProjectDescription):
         {"file_tree": file_tree}
     )
     return JSONResponse(content=response.content)
+
+
+@app.get("/get_code_content")
+def get_code_content_route(file_path: str):
+    content = read_file(file_path)
+    return JSONResponse(content=content)
 
 
 class RepoURL(BaseModel):

@@ -49,4 +49,20 @@ export const apiService = {
       };
     }
   },
+  getCodeContent: async (filePath: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/get_code_content`, {
+        params: { file_path: filePath },
+      });
+      return { data: response.data, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof AxiosError
+            ? error.response?.data?.detail || "Failed to fetch code content"
+            : "Failed to fetch code content",
+      };
+    }
+  },
 };

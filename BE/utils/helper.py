@@ -76,6 +76,7 @@ def count_token(string: str) -> int:
 def input_preparation(selected_files, project_description, criterias, token_limit=4000):
     filtered_data = []
     filtered_files = []
+    file_tree = build_tree(selected_files)
     for file_path in selected_files:
         content = read_file(file_path)
         token_count = count_token(content)
@@ -85,6 +86,7 @@ def input_preparation(selected_files, project_description, criterias, token_limi
                 {
                     "criterias": criterias,
                     "file_name": file_path,
+                    "file_tree": file_tree,
                     "code": content,
                     "project_description": project_description,
                 }
