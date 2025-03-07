@@ -2,9 +2,8 @@ from langchain_openai import AzureChatOpenAI
 from config.prompt import (
     project_description_generator_prompt,
     check_relevant_criteria_prompt,
-    anaylize_code_files_prompt,
+    analyze_code_files_prompt,
     grade_code_across_review_prompt,
-    final_grade_prompt,
 )
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -44,7 +43,7 @@ chain_check_relevant_criteria = (
     | llm_4o_mini.with_structured_output(CheckRelevantCriteriaOutput)
 )
 chain_analyze_code_file = (
-    anaylize_code_files_prompt | llm_4o_mini.with_structured_output(AnaLyzeOutput)
+    analyze_code_files_prompt | llm_4o_mini.with_structured_output(AnaLyzeOutput)
 )
 chain_summarize_code_review = grade_code_across_review_prompt | llm_4o_mini
-chain_final_grade = final_grade_prompt | llm_4o_mini
+# chain_final_grade = final_grade_prompt | llm_4o_mini

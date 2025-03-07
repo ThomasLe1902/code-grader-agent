@@ -1,112 +1,76 @@
 from langchain_core.prompts import PromptTemplate
 
 
+# Project Analysis Prompts
 project_description_generator_prompt = PromptTemplate.from_template(
     """
 Generate a concise project description by analyzing this file tree.
 
-File Tree:
-{file_tree}
+File Tree: {file_tree}
 
 Instructions:
-1. Identify the project type (Frontend/Backend/AI/Full-stack)
-2. Specify frameworks and technologies (e.g., Vite, FastAPI, Node.js, React)
-3. Determine project architecture/structure
-4. Note any distinctive patterns or features
+1. Identify project type (Frontend/Backend/AI/Full-stack)
+2. Specify frameworks and technologies
+3. Determine project architecture
+4. Note distinctive patterns
 
-Create a 3-5 sentence description that clearly identifies the project's nature, tech stack, and purpose to help determine code evaluation relevance.
+Output: 3-5 sentence description of project nature, tech stack, and purpose
 """
 )
 
-# check_relevant_criteria_prompt = PromptTemplate.from_template(
-#     """
-# Evaluate Code Relevance to Criteria Scope
-
-# Folder tree: {file_tree}
-
-# # Criteria: {criterias}
-
-
-
-# Code content in file name: {file_name}
-
-# <CODE_CONTENT>
-# {code}
-# <CODE_CONTENT/>
-
-# Strict Relevance Assessment:
-# 1. Direct Scope Check:
-#    - Does the code EXPLICITLY address ANY of the specified criteria?
-#    - Is the code type/technology mentioned in criteria?
-
-# 2. Immediate Disqualification Conditions:
-#    - Code unrelated to ANY criteria
-#    - No matching technology or evaluation domain
-
-# Output Rules:
-# - 1 = Code DIRECTLY in evaluation scope
-# - 0 = Code OUTSIDE evaluation scope
-
-# Key Decision Factors:
-# - Precise criteria match
-# - Technology alignment
-# - Direct relevance
-
-# """
-# )
+# Code Relevance Assessment
 check_relevant_criteria_prompt = PromptTemplate.from_template(
-    """Are you an expert in assessing the relevance of the code scoring criteria to the code content in the field that the criteria refer to?
-#Guide.
-Read the requirements carefully
-Check which part the scoring criteria relate to. Example (library, testing, documention, UI, FE, BE).
-If the scope of the evaluation criteria and the code are related to the criteria, return 1, otherwise return 0
-Example:
+    """
+Assess code relevance to criteria scope
+
+Inputs:
+- File tree: {file_tree}
+- Current file: {file_name}
+- Project description: {project_description}
+- Criteria: {criterias}
+
+Rules:
+1. Check which part criteria relate to (library, testing, documentation, UI, FE, BE)
+2. Return 1 if relevant, 0 if not
+3. Consider file extensions (.css, .py, .ts, .java)
+
+Examples:
 1. Criteria: Unit test for core logic
-    If Code content related to styling or documentation, return 0. Code content related unit test for core logic, return 1
-2. Criteria:  Clear instructions in (README.md) file
-    If Code content is about css, html, testing files, return 0. If .md file return 1
-3. Criteria: Consistent naming conventions
-    If Code content is about HTML, CSS files, return 0. If Files related to logic processing or test files can be matched because they have variable naming methods inside.
-
-Note: Pay attention to the file extension (.css, .py, .ts, .java,...) to easily identify whether relevant or not.
-
-File tree: {file_tree}
-
-Current file need to check: {file_name}
-
-project description: {project_description}
-
-My criterias{criterias}
-
+   - Styling/docs: 0
+   - Unit tests: 1
+2. Criteria: Clear README instructions
+   - CSS/HTML: 0
+   - .md files: 1
 """
 )
 
+# Code Review Prompts
+analyze_code_files_prompt = PromptTemplate.from_template(
+    """
+Analyze code against specific criteria
 
-anaylize_code_files_prompt = PromptTemplate.from_template(
-    """# Code Review
-Analyze this code against specific criteria as an expert reviewer.
-
-## File: {file_name}
-
-## Criteria
+File: {file_name}
+Criteria: 
 {criterias}
-                                                          
-## Review Format
+Code: 
+{code}
 
+Review Format:
 1. Comments:
-    line X(number): [code snippet]  #[specific issue, comment on issue]
-    line Y(number): [code snippet]  #[specific issue, comment on issue]
-    Note: Always give briefly suggest improvements to increase rating score (in case score < 5). Return in Markdown text
+   - line X: [code] #[issue, suggestion]
+   - line Y: [code] #[issue, suggestion]
+    Note: Always give briefly suggest improvements to increase rating score (in case score < 5).
+    Return in Markdown text
 
-2. Criteria Analysis:
-    For each criterion, provide concise assessment with specific examples. Return in Markdown text
+2. Criteria Analysis: Concise assessment with examples (Return in Markdown text)
 
-3. Rating:
-- 1: Poor (major issues, fails multiple criteria)
-- 2: Below Average (significant improvements needed)
-- 3: Average (meets minimum standards)
-- 4: Good (minor issues only)
-- 5: Excellent (meets or exceeds all criteria)
+3. Rating (1-5):
+   - 1: Poor
+   - 2: Below Average
+   - 3: Average
+   - 4: Good
+   - 5: Excellent
+
                                            
 ##Code:
 ```
@@ -117,44 +81,31 @@ Analyze this code against specific criteria as an expert reviewer.
 """
 )
 
-
+# Grading Prompts
 grade_code_across_review_prompt = PromptTemplate.from_template(
     """
 # Code Quality Assessment
 Grade each criterion on a 1-5 scale based on the comprehensive review comments across all files.
 
-## Criteria:
+#Criteria: 
 {criterias}
 
-## Review Summary:
-{review_summary}
+Review Summary: {review_summary}
 
-## Output Format (Return in Markdown text): 
-For each criterion:
-
-Criterion X: [Title]
+Format: Return in Markdown format
+Criterion X: **[Title]**
 - Summary: [Concise assessment based on cross-file patterns]
-- Grade: [1-5]
+- Grade: **[1-5]**
+
+Note: Evaluate each criterion based on the rating and evaluation of all files. Do not evaluate each file.
 
 Rating Scale:
-1 = Poor (major issues)
-2 = Below Average (significant concerns)
-3 = Average (meets minimum standards)
-4 = Good (exceeds standards)
-5 = Excellent (exemplary)
+1 = Poor
+2 = Below Average
+3 = Average
+4 = Good
+5 = Excellent
 """
 )
 
-final_grade_prompt = PromptTemplate.from_template(
-    """
-You are an expert in Total Review With All Criteria with the following criteria to analyze the code file.
 
-{criteria}
-                                                  
-
-All Summary:
-{all_summary}
-                                                  
-
-"""
-)

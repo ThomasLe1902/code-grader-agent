@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
-from typing import List
+from typing import List, Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +13,10 @@ from utils.helper import (
     build_tree,
     read_file,
 )
-from agent.graph_function import chain_project_description_generator
+from agent.graph_function import (
+    chain_project_description_generator,
+    summarize_code_review_controller,
+)
 from pydantic import BaseModel, Field, conlist
 import uvicorn
 from agent.graph_flow import grade_code
@@ -34,7 +37,7 @@ class ProjectDescription(BaseModel):
     selected_files: List[str] = Field("None")
 
 
-@app.post("/project_description_generation")
+@app.post("/project_description_generation", status_code=200)
 async def project_description_generation(body: ProjectDescription):
     file_paths = filter_file_paths(body.selected_files)
     file_tree = build_tree(file_paths)
@@ -44,7 +47,7 @@ async def project_description_generation(body: ProjectDescription):
     return JSONResponse(content=response.content)
 
 
-@app.get("/get_code_content")
+@app.get("/get_code_content", status_code=200)
 def get_code_content_route(file_path: str):
     content = read_file(file_path)
     return JSONResponse(content=content)
@@ -55,7 +58,7 @@ class RepoURL(BaseModel):
     extensions: List[str] = SUPPORTED_EXTENSIONS
 
 
-@app.post("/get-file-tree/")
+@app.post("/get-file-tree/", status_code=200)
 async def get_file_tree(repo: RepoURL):
     try:
         code_files = list_code_files_in_repository(repo.url, repo.extensions)
@@ -71,7 +74,7 @@ class GradeCodeRequest(BaseModel):
     project_description: str = Field(None, description="Project description")
 
 
-@app.post("/grade-code/")
+@app.post("/grade-code/", status_code=200)
 async def grade_code_rt(body: GradeCodeRequest):
     file_paths = filter_file_paths(body.selected_files)
 
@@ -82,6 +85,20 @@ async def grade_code_rt(body: GradeCodeRequest):
         )
     output = await grade_code(file_paths, body.criterias_list, body.project_description)
     return JSONResponse(content=output)
+
+
+class GradeOverallInterface(BaseModel):
+    data: Any
+
+
+@app.post("/grade_overall", status_code=200)
+async def grade_overall(body: GradeOverallInterface):
+
+    print("body", body.data)
+
+    response = await summarize_code_review_controller(body.data)
+    print(response)
+    return JSONResponse(content=response)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Button, Table, Tag, Tabs, Tooltip, message } from "antd";
 import { marked } from "marked";
 import { GradingResult } from "../../types";
@@ -7,50 +7,19 @@ import {
   CheckCircleOutlined,
   CodeOutlined,
   CommentOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   FileOutlined,
 } from "@ant-design/icons";
 import { apiService } from "../../api/service";
+import { statusConfig } from "../../constant";
 
-type Status = {
-  text: string;
-  color: string;
-  description: string;
-};
-type StatusConfig = {
-  [key: number]: Status;
-};
-const statusConfig: StatusConfig = {
-  1: {
-    text: "Poor",
-    color: "red",
-    description: "Major issues, fails multiple criteria",
-  },
-  2: {
-    text: "Below Average",
-    color: "volcano",
-    description: "Significant improvements needed",
-  },
-  3: {
-    text: "Average",
-    color: "orange",
-    description: "Meets minimum standards",
-  },
-  4: {
-    text: "Good",
-    color: "green",
-    description: "Minor issues only",
-  },
-  5: {
-    text: "Excellent",
-    color: "cyan",
-    description: "Meets or exceeds all criteria",
-  },
-};
-
-const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
-  results,
-}) => {
+const GradingResultView: React.FC<{
+  results: GradingResult[];
+  setResults?: React.Dispatch<React.SetStateAction<GradingResult[]>>;
+}> = ({ results, setResults }) => {
+  const [localResults, setLocalResults] = useState<GradingResult[]>(results);
+  const [gradeOverall, setGradeOverall] = useState<Record<string, string>>({});
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{
     file_name: string;
@@ -59,7 +28,8 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
   } | null>(null);
   const [activeTabKey, setActiveTabKey] = useState<string>("0");
   const [codeContent, setCodeContent] = useState<string>("");
-
+  const [loadingGrade, setLoadingGrade] = useState<Record<string, boolean>>({});
+  console.log(gradeOverall);
   const handleViewDetails = (fileResult: {
     file_name: string;
     comment: string;
@@ -92,6 +62,56 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     }
   };
 
+  const handleRemoveFile = (fileIndex: number) => {
+    const currentTabIndex = parseInt(activeTabKey);
+
+    const updatedResults = [...localResults];
+
+    if (
+      updatedResults[currentTabIndex] &&
+      updatedResults[currentTabIndex].analyze_code_result
+    ) {
+      updatedResults[currentTabIndex].analyze_code_result = updatedResults[
+        currentTabIndex
+      ].analyze_code_result.filter((_, index) => index !== fileIndex);
+
+      setLocalResults(updatedResults);
+      if (setResults) {
+        setResults(updatedResults);
+      }
+
+      message.success("File removed successfully");
+    }
+  };
+
+  const handleGradeOverall = async (criteriaIndex: number) => {
+    try {
+      setLoadingGrade((prev) => ({ ...prev, [criteriaIndex]: true }));
+
+      if (
+        !localResults[criteriaIndex] ||
+        !localResults[criteriaIndex].analyze_code_result
+      ) {
+        message.error("No results available to grade");
+        return;
+      }
+
+      const response = await apiService.overallGrade(
+        localResults[criteriaIndex]
+      );
+      setGradeOverall((prev) => ({
+        ...prev,
+        [criteriaIndex]: response.data,
+      }));
+
+      message.success("Overall grading completed successfully");
+    } catch (error) {
+      message.error("Failed to grade overall results");
+    } finally {
+      setLoadingGrade((prev) => ({ ...prev, [criteriaIndex]: false }));
+    }
+  };
+
   const columns = [
     {
       title: "File Name",
@@ -115,10 +135,19 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: any) => (
-        <Button type="primary" onClick={() => handleViewDetails(record)}>
-          View Details
-        </Button>
+      render: (_: any, record: any, index: number) => (
+        <div className="flex space-x-2">
+          <Button type="primary" onClick={() => handleViewDetails(record)}>
+            View Details
+          </Button>
+
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            title="Remove file"
+            onClick={() => handleRemoveFile(index)}
+          />
+        </div>
       ),
     },
   ];
@@ -126,7 +155,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
   const exportToExcel = () => {
     const workbook = XLSX.utils.book_new();
 
-    results.forEach((currentResults, index) => {
+    localResults.forEach((currentResults, index) => {
       if (!currentResults || !currentResults.analyze_code_result) {
         return;
       }
@@ -166,6 +195,22 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
         Evaluation: "",
       };
       data.push(criteriaDetailsRow);
+
+      // Add overall grading if available
+      if (gradeOverall[index]) {
+        const overallGradeRow = {
+          "File Name": "Overall Grade",
+          Rating: "",
+          "Rating Value": 0,
+          Comments: gradeOverall[index]
+            .replace(/\*\*/g, "")
+            .replace(/#/g, "")
+            .replace(/<[^>]*>?/gm, ""),
+          Evaluation: "",
+        };
+        data.push(overallGradeRow);
+      }
+
       const worksheet = XLSX.utils.json_to_sheet(data);
       const wscols = [
         { wch: 30 },
@@ -202,7 +247,12 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     XLSX.writeFile(workbook, fileName);
   };
 
-  const tabItems = results.map((result, index) => {
+  useEffect(() => {
+    setLocalResults(results);
+  }, [results]);
+
+  const tabItems = localResults.map((result, index) => {
+    const currentIndex = index;
     return {
       key: index.toString(),
       label: `Criteria ${index + 1}`,
@@ -223,15 +273,27 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
             rowKey="file_name"
             pagination={false}
           />
-          {result.grade_criteria && (
+          <Button
+            type="primary"
+            className="bg-green-700 mt-4"
+            loading={loadingGrade[currentIndex]}
+            onClick={() => handleGradeOverall(currentIndex)}
+            disabled={
+              !result.analyze_code_result ||
+              result.analyze_code_result.length === 0
+            }
+          >
+            Grade Overall Result
+          </Button>
+          {gradeOverall[currentIndex] && (
             <div className="border rounded-lg bg-white p-6 shadow-sm mt-6">
               <h4 className="text-xl font-semibold text-blue-600 mb-4">
-                Overall Grade Criteria
+                Overall Grade Analysis
               </h4>
               <div
                 className="prose max-w-none"
                 dangerouslySetInnerHTML={{
-                  __html: marked(result.grade_criteria),
+                  __html: marked(gradeOverall[currentIndex]),
                 }}
               />
             </div>
@@ -249,7 +311,7 @@ const GradingResultView: React.FC<{ results: GradingResult[] }> = ({
     <div className="mt-6">
       <h3 className="text-lg font-medium mb-4">Grading Results</h3>
 
-      {results.length > 0 ? (
+      {localResults.length > 0 ? (
         <>
           <Tabs
             activeKey={activeTabKey}

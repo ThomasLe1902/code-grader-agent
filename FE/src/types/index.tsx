@@ -22,3 +22,11 @@ export interface FileTreeProps {
   nodes: TreeNode[];
   onFileSelection: (selectedFiles: string[]) => void;
 }
+interface Status {
+  text: string;
+  color: string;
+  description: string;
+}
+export interface StatusConfig {
+  [key: number]: Status;
+}

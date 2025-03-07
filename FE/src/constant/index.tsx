@@ -1,8 +1,10 @@
+import { StatusConfig } from "../types";
+
 export const API_BASE_URL = "http://127.0.0.1:8000";
 export const DEFAULT_REPO_URL =
   "https://github.com/lmhdev/web-dev-tech-assessment";
 
-  export const EXTENSION_OPTIONS = [
+export const EXTENSION_OPTIONS = [
   { label: "Markdown", value: ".md" },
   { label: "Text", value: ".txt" },
   { label: "Environment", value: ".env" },
@@ -105,3 +107,30 @@ The request and response must match with requirement from customer.
   Includes screenshots of API result, error handling screen, and test coverage result.
   Can refer some samples from success case`,
 ];
+export const statusConfig: StatusConfig = {
+  1: {
+    text: "Poor",
+    color: "red",
+    description: "Major issues, fails multiple criteria",
+  },
+  2: {
+    text: "Below Average",
+    color: "volcano",
+    description: "Significant improvements needed",
+  },
+  3: {
+    text: "Average",
+    color: "orange",
+    description: "Meets minimum standards",
+  },
+  4: {
+    text: "Good",
+    color: "green",
+    description: "Minor issues only",
+  },
+  5: {
+    text: "Excellent",
+    color: "cyan",
+    description: "Meets or exceeds all criteria",
+  },
+};

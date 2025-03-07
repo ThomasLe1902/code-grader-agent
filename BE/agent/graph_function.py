@@ -30,7 +30,6 @@ class ParentGraphState(TypedDict):
     output: Any
 
 
-
 async def project_description_generator_fn(state: State):
     logger.info("Generating project description...")
     selected_files = state["selected_files"]
@@ -105,3 +104,17 @@ async def summarize_code_review_fn(state: State):
         {"criterias": criterias, "review_summary": review_across_files}
     )
     return {"grade_criteria": review_response.content}
+
+
+async def summarize_code_review_controller(data):
+    
+    files_name = [item["file_name"] for item in data["analyze_code_result"]]
+    analyze_results = data["analyze_code_result"]
+    criterias = data["criterias"]
+    review_across_files = format_comment_across_file(
+        files_name=files_name, analyze_results=analyze_results
+    )
+    review_response = await chain_summarize_code_review.ainvoke(
+        {"criterias": criterias, "review_summary": review_across_files}
+    )
+    return review_response.content

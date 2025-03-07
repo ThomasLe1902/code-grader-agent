@@ -130,7 +130,7 @@ def format_comment_across_file(
     """Format the comments across all files."""
     return "\n".join(
         [
-            f"File Name: {file_name}\nEvaluation: {analyze_result['criteria_eval']}"
+            f'File Name: {file_name}\nEvaluation: {analyze_result.get("criteria_eval","")}\nRating: {analyze_result.get("rating","")}'
             for file_name, analyze_result in zip(files_name, analyze_results)
         ]
     )

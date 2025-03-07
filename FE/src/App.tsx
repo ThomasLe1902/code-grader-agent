@@ -127,8 +127,6 @@ const App: React.FC = () => {
       });
       return;
     }
-
-    // Validate criteria
     const validCriterias = criterias.filter(
       (criteria) => criteria.trim() !== ""
     );
@@ -140,8 +138,6 @@ const App: React.FC = () => {
       });
       return;
     }
-
-    // Show loading message
     message.loading({
       content: "Grading code in progress...",
       key: "grading",
@@ -332,7 +328,9 @@ const App: React.FC = () => {
           )}
         </Drawer>
 
-        {gradeResult && <GradingResultView results={gradeResult} />}
+        {gradeResult && (
+          <GradingResultView results={gradeResult}/>
+        )}
       </div>
     </div>
   );

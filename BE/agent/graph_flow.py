@@ -36,7 +36,7 @@ class AgentCodeGrader:
         )
         self.flow.add_node("check_relevant_criteria", check_relevant_criteria_fn)
         self.flow.add_node("analyze_code_file", analyze_code_file_fn)
-        self.flow.add_node("summarize_code_review", summarize_code_review_fn)
+        # self.flow.add_node("summarize_code_review", summarize_code_review_fn)
 
     def edge(self):
         self.flow.add_conditional_edges(
@@ -56,8 +56,8 @@ class AgentCodeGrader:
                 "analyze_code_file": "analyze_code_file",
             },
         )
-        self.flow.add_edge("analyze_code_file", "summarize_code_review")
-        self.flow.add_edge("summarize_code_review", END)
+        # self.flow.add_edge("analyze_code_file", "summarize_code_review")
+        self.flow.add_edge("analyze_code_file", END)
 
     def __call__(self) -> CompiledStateGraph:
         self.node()

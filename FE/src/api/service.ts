@@ -65,4 +65,20 @@ export const apiService = {
       };
     }
   },
+  overallGrade: async (data: any) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/grade_overall`, {
+        data: data,
+      });
+      return { data: response.data, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof AxiosError
+            ? error.response?.data?.detail
+            : "Failed to grade overall",
+      };
+    }
+  },
 };
