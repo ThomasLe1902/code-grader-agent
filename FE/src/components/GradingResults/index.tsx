@@ -346,6 +346,25 @@ const GradingResultView: React.FC<{
                 >
                   View Source Code
                 </Button>,
+                <Button
+                  key="remove"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    const fileIndex = localResults[
+                      parseInt(activeTabKey)
+                    ]?.analyze_code_result.findIndex(
+                      (file) => file.file_name === selectedFile?.file_name
+                    );
+
+                    if (fileIndex !== undefined && fileIndex !== -1) {
+                      handleRemoveFile(fileIndex);
+                      handleCancel(); 
+                    }
+                  }}
+                >
+                  Remove File
+                </Button>,
                 <Button key="back" onClick={handleCancel}>
                   Close
                 </Button>,
@@ -358,13 +377,16 @@ const GradingResultView: React.FC<{
                       <CommentOutlined className="text-green-500 text-xl" />
                       <h3 className="font-semibold text-xl">Comments</h3>
                     </div>
-                    <div className="prose max-w-none">
-                      {selectedFile.comment || "No comments available."}
-                    </div>
+                    <div
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: marked(selectedFile.comment),
+                      }}
+                    />
                   </div>
 
                   <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <div className="flex items-center space-x-2 mb-4">
+                    <div className="flex items-center space-x-2 mb-4 ">
                       <CheckCircleOutlined className="text-blue-500 text-xl" />
                       <h3 className="font-semibold text-xl">Evaluation</h3>
                     </div>

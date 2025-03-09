@@ -16,6 +16,7 @@ import {
   Badge,
   Drawer,
   Space,
+  FloatButton,
 } from "antd";
 import { FileOutlined, EyeOutlined } from "@ant-design/icons";
 import FileTree from "./components/FileTree";
@@ -26,6 +27,8 @@ import RepositoryConfig from "./components/RepositoryConfig";
 const { Title } = Typography;
 
 const App: React.FC = () => {
+  const [messageApi, contextHolder] = message.useMessage();
+
   const [repoUrl, setRepoUrl] = useState(DEFAULT_REPO_URL);
   const [fileTreeData, setFileTreeData] = useState<TreeNode[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -43,7 +46,15 @@ const App: React.FC = () => {
   const fetchFileTreeData = useCallback(async () => {
     setLoading(true);
     setError("");
-
+    setSelectedFiles([]);
+    setGradeResult([]);
+    setProjectDescription("");
+    setGradeLoading(false);
+    messageApi.loading({
+      content: "Cloning repository...",
+      key: "fetch-repo",
+      duration: 0,
+    });
     const { data, error: fetchError } = await apiService.fetchFileTree(
       repoUrl,
       selectedExtensions
@@ -51,8 +62,19 @@ const App: React.FC = () => {
 
     if (data) {
       setFileTreeData(data);
+      messageApi.success({
+        content: "Repository cloned successfully!",
+        key: "fetch-repo",
+        duration: 3,
+      });
     } else if (fetchError) {
       setError(fetchError);
+      setFileTreeData([]);
+      messageApi.error({
+        content: fetchError,
+        key: "fetch-repo",
+        duration: 3,
+      });
     }
 
     setLoading(false);
@@ -63,12 +85,12 @@ const App: React.FC = () => {
   }, []);
   const handleSetFECriteria = useCallback(() => {
     setCriterias(DEFAULT_CRITERIA_FE);
-    message.success("Frontend criteria loaded");
+    messageApi.success("Frontend criteria loaded");
   }, []);
 
   const handleSetBECriteria = useCallback(() => {
     setCriterias(DEFAULT_CRITERIA_BE);
-    message.success("Backend criteria loaded");
+    messageApi.success("Backend criteria loaded");
   }, []);
 
   const handleFileSelection = useCallback((files: string[]) => {
@@ -84,7 +106,7 @@ const App: React.FC = () => {
   }, []);
   const generateDescription = useCallback(async () => {
     if (selectedFiles.length === 0) {
-      message.error({
+      messageApi.error({
         content: "Please select files first",
         key: "description-generation",
         duration: 3,
@@ -92,7 +114,7 @@ const App: React.FC = () => {
       return;
     }
 
-    message.loading({
+    messageApi.loading({
       content: "Generating project description...",
       key: "description-generation",
       duration: 0,
@@ -104,13 +126,13 @@ const App: React.FC = () => {
 
     if (data) {
       setProjectDescription(data);
-      message.success({
+      messageApi.success({
         content: "Description generated successfully!",
         key: "description-generation",
         duration: 3,
       });
     } else if (error) {
-      message.error({
+      messageApi.error({
         content: error,
         key: "description-generation",
         duration: 3,
@@ -120,7 +142,7 @@ const App: React.FC = () => {
   const gradeCode = useCallback(async () => {
     // Validate selected files
     if (selectedFiles.length === 0) {
-      message.error({
+      messageApi.error({
         content: "Please select at least one file to grade",
         key: "file-selection",
         duration: 3,
@@ -131,14 +153,14 @@ const App: React.FC = () => {
       (criteria) => criteria.trim() !== ""
     );
     if (validCriterias.length === 0) {
-      message.error({
+      messageApi.error({
         content: "Please add at least one grading criteria",
         key: "criteria-validation",
         duration: 3,
       });
       return;
     }
-    message.loading({
+    messageApi.loading({
       content: "Grading code in progress...",
       key: "grading",
       duration: 0,
@@ -156,21 +178,21 @@ const App: React.FC = () => {
 
       if (data) {
         setGradeResult(data);
-        message.success({
+        messageApi.success({
           content: "Code graded successfully!",
           key: "grading",
           duration: 3,
         });
       } else if (gradeError) {
         setError(gradeError);
-        message.error({
+        messageApi.error({
           content: gradeError,
           key: "grading",
           duration: 3,
         });
       }
     } catch (error) {
-      message.error({
+      messageApi.error({
         content: "An unexpected error occurred",
         key: "grading",
         duration: 3,
@@ -185,154 +207,156 @@ const App: React.FC = () => {
   }, [fileTreeData]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
-      <div className="container mx-auto max-w-6xl">
-        <Header />
+    <>
+      {contextHolder}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+        <div className="container mx-auto max-w-6xl">
+          <Header />
 
-        <RepositoryConfig
-          repoUrl={repoUrl}
-          loading={loading}
-          selectedExtensions={selectedExtensions}
-          onRepoUrlChange={setRepoUrl}
-          onExtensionChange={handleExtensionChange}
-          onFetchFiles={fetchFileTreeData}
-        />
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600">{error}</p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Card
-            title={<Title level={4}>File Tree</Title>}
-            className="shadow-sm hover:shadow-md transition-shadow"
-            extra={
-              selectedFiles.length > 0 && (
-                <Badge count={selectedFiles.length} color="blue">
-                  <Button
-                    icon={<EyeOutlined />}
-                    onClick={showSelectedFiles}
-                    type="primary"
-                    ghost
-                  >
-                    Selected Files
-                  </Button>
-                </Badge>
-              )
-            }
-          >
-            <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
-              {fileTreeData.length > 0 ? (
-                <FileTree
-                  nodes={fileTreeData}
-                  onFileSelection={handleFileSelection}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  <p>No files to display. Clone a repository first.</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card
-            title={<Title level={4}>Grading Criteria</Title>}
-            className="shadow-sm hover:shadow-md transition-shadow"
-            extra={
-              <Space>
-                <Button
-                  type="default"
-                  size="small"
-                  onClick={handleSetFECriteria}
-                >
-                  Use FE Criteria
-                </Button>
-                <Button
-                  type="default"
-                  size="small"
-                  onClick={handleSetBECriteria}
-                >
-                  Use BE Criteria
-                </Button>
-              </Space>
-            }
-          >
-            <div className="flex gap-2 mb-4">
-              <Input.TextArea
-                size="large"
-                value={projectDescription}
-                onChange={(e) => setProjectDescription(e.target.value)}
-                placeholder="Enter project description (optional)"
-                className="!rounded-lg"
-                rows={4}
-              />
-              <Button
-                onClick={generateDescription}
-                disabled={selectedFiles.length === 0}
-              >
-                Generate
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <CriteriaInput
-                criterias={criterias}
-                setCriterias={setCriterias}
-              />
-              <Button
-                type="primary"
-                size="large"
-                className="w-full !bg-green-500 hover:!bg-green-600 disabled:opacity-50"
-                onClick={gradeCode}
-                disabled={
-                  gradeLoading ||
-                  selectedFiles.length === 0 ||
-                  criterias.filter((c) => c.trim() !== "").length === 0
-                }
-                loading={gradeLoading}
-              >
-                {gradeLoading ? "Grading Code..." : "Grade Selected Files"}
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-        {/* Drawer for selected files */}
-        <Drawer
-          title={
-            <div className="flex items-center">
-              <FileOutlined className="mr-2" />
-              <span>Selected Files ({selectedFiles.length})</span>
-            </div>
-          }
-          placement="right"
-          onClose={closeFilesDrawer}
-          open={isFilesDrawerOpen}
-          width={400}
-        >
-          {selectedFiles.length > 0 ? (
-            <ul className="list-disc pl-5 space-y-2">
-              {selectedFiles.map((file) => (
-                <li
-                  key={file}
-                  className="text-gray-700 py-1 border-b border-gray-100"
-                >
-                  {file}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">No files selected</p>
+          <RepositoryConfig
+            repoUrl={repoUrl}
+            loading={loading}
+            selectedExtensions={selectedExtensions}
+            onRepoUrlChange={setRepoUrl}
+            onExtensionChange={handleExtensionChange}
+            onFetchFiles={fetchFileTreeData}
+          />
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{error}</p>
             </div>
           )}
-        </Drawer>
 
-        {gradeResult && (
-          <GradingResultView results={gradeResult}/>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card
+              title={<Title level={4}>File Tree</Title>}
+              className="shadow-sm hover:shadow-md transition-shadow"
+              extra={
+                selectedFiles.length > 0 && (
+                  <Badge count={selectedFiles.length} color="blue">
+                    <Button
+                      icon={<EyeOutlined />}
+                      onClick={showSelectedFiles}
+                      type="primary"
+                      ghost
+                    >
+                      Selected Files
+                    </Button>
+                  </Badge>
+                )
+              }
+            >
+              <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
+                {fileTreeData.length > 0 ? (
+                  <FileTree
+                    nodes={fileTreeData}
+                    onFileSelection={handleFileSelection}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    <p>No files to display. Clone a repository first.</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card
+              title={<Title level={4}>Grading Criteria</Title>}
+              className="shadow-sm hover:shadow-md transition-shadow"
+              extra={
+                <Space>
+                  <Button
+                    type="default"
+                    size="small"
+                    onClick={handleSetFECriteria}
+                  >
+                    Use FE Criteria
+                  </Button>
+                  <Button
+                    type="default"
+                    size="small"
+                    onClick={handleSetBECriteria}
+                  >
+                    Use BE Criteria
+                  </Button>
+                </Space>
+              }
+            >
+              <div className="flex gap-2 mb-4">
+                <Input.TextArea
+                  size="large"
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  placeholder="Enter project description (optional)"
+                  className="!rounded-lg"
+                  rows={4}
+                />
+                <Button
+                  onClick={generateDescription}
+                  disabled={selectedFiles.length === 0}
+                >
+                  Generate
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <CriteriaInput
+                  criterias={criterias}
+                  setCriterias={setCriterias}
+                />
+                <Button
+                  type="primary"
+                  size="large"
+                  className="w-full !bg-green-500 hover:!bg-green-600 disabled:opacity-50"
+                  onClick={gradeCode}
+                  disabled={
+                    gradeLoading ||
+                    selectedFiles.length === 0 ||
+                    criterias.filter((c) => c.trim() !== "").length === 0
+                  }
+                  loading={gradeLoading}
+                >
+                  {gradeLoading ? "Grading Code..." : "Grade Selected Files"}
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Drawer for selected files */}
+          <Drawer
+            title={
+              <div className="flex items-center">
+                <FileOutlined className="mr-2" />
+                <span>Selected Files ({selectedFiles.length})</span>
+              </div>
+            }
+            placement="right"
+            onClose={closeFilesDrawer}
+            open={isFilesDrawerOpen}
+            width={400}
+          >
+            {selectedFiles.length > 0 ? (
+              <ul className="list-disc pl-5 space-y-2">
+                {selectedFiles.map((file) => (
+                  <li
+                    key={file}
+                    className="text-gray-700 py-1 border-b border-gray-100"
+                  >
+                    {file}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">No files selected</p>
+              </div>
+            )}
+          </Drawer>
+
+          {gradeResult && <GradingResultView results={gradeResult} />}
+        </div>
+        <FloatButton.BackTop />
       </div>
-    </div>
+    </>
   );
 };
 

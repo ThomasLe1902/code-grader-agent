@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import os
 
-
 llm_4o_mini = AzureChatOpenAI(
     azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),

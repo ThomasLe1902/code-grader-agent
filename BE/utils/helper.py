@@ -16,15 +16,34 @@ def list_code_files_in_repository(
 
 
 def clone_github_repository(repo_url: str) -> str:
-    """Clone a GitHub repository into the 'repo' folder and return the local path."""
+    """Clone a GitHub repository into the 'repo' folder and return the local path.
+
+    Args:
+        repo_url (str): URL of the GitHub repository
+
+    Returns:
+        str: Local path to the cloned repository
+
+    Raises:
+        git.GitCommandError: If cloning fails
+    """
     if not os.path.exists(REPO_FOLDER):
         os.makedirs(REPO_FOLDER)
 
     repo_name = repo_url.split("/")[-1]
     local_path = os.path.join(REPO_FOLDER, repo_name)
 
-    if not os.path.exists(local_path):
-        Repo.clone_from(repo_url, local_path)
+    # Remove existing repository if it exists
+    if os.path.exists(local_path):
+        import shutil
+
+        shutil.rmtree(local_path)
+        logger.info(f"Removed existing repository at {local_path}")
+
+    # Clone fresh copy
+    logger.info(f"Cloning repository from {repo_url}")
+    Repo.clone_from(repo_url, local_path)
+    logger.info(f"Repository cloned successfully to {local_path}")
 
     return local_path
 
@@ -130,7 +149,7 @@ def format_comment_across_file(
     """Format the comments across all files."""
     return "\n".join(
         [
-            f'File Name: {file_name}\nEvaluation: {analyze_result.get("criteria_eval","")}\nRating: {analyze_result.get("rating","")}'
+            f'File Name: {file_name}\nComment: {analyze_result.get("comment","")}'
             for file_name, analyze_result in zip(files_name, analyze_results)
         ]
     )

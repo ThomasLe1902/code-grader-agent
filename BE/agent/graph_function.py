@@ -45,7 +45,10 @@ async def check_relevant_criteria_fn(state: State):
     criterias = state["criterias"]
     selected_files = state["selected_files"]
     project_description = state["project_description"]
-
+    if project_description:
+        project_description = "- Project description: " + project_description
+    else:
+        project_description = ""
     filter_datas, filter_files = input_preparation(
         selected_files, project_description, criterias, 5000
     )
@@ -107,7 +110,7 @@ async def summarize_code_review_fn(state: State):
 
 
 async def summarize_code_review_controller(data):
-    
+
     files_name = [item["file_name"] for item in data["analyze_code_result"]]
     analyze_results = data["analyze_code_result"]
     criterias = data["criterias"]

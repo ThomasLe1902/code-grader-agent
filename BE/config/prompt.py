@@ -26,7 +26,7 @@ Assess code relevance to criteria scope
 Inputs:
 - File tree: {file_tree}
 - Current file: {file_name}
-- Project description: {project_description}
+{project_description}
 - Criteria: {criterias}
 
 Rules:
@@ -57,10 +57,9 @@ Code:
 
 Review Format:
 1. Comments:
-   - line X: [code] #[issue, suggestion]
+   - line X: [code] #[issue, suggestion] 
    - line Y: [code] #[issue, suggestion]
-    Note: Always give briefly suggest improvements to increase rating score (in case score < 5).
-    Return in Markdown text
+    Note: Always give briefly suggest improvements to increase rating score (in case score < 5). Only show suggestion for issue lines    Return in Markdown text
 
 2. Criteria Analysis: Concise assessment with examples (Return in Markdown text)
 
@@ -99,12 +98,13 @@ Criterion X: **[Title]**
 
 Note: Evaluate each criterion based on the rating and evaluation of all files. Do not evaluate each file.
 
-Rating Scale:
+
+Rating Scale: Based on the comments on each file to give the most objective assessment. Consider giving 4 or 5 points if they don't make many mistakes.
 1 = Poor
-2 = Below Average
-3 = Average
-4 = Good
-5 = Excellent
+2 = Below Average (Fresher)
+3 = Average (Junior)
+4 = Good (Middle)
+5 = Excellent (Senior)
 """
 )
 

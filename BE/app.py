@@ -93,11 +93,7 @@ class GradeOverallInterface(BaseModel):
 
 @app.post("/grade_overall", status_code=200)
 async def grade_overall(body: GradeOverallInterface):
-
-    print("body", body.data)
-
     response = await summarize_code_review_controller(body.data)
-    print(response)
     return JSONResponse(content=response)
 
 
