@@ -5,7 +5,7 @@ from typing import List, Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from utils.helper import (
     list_code_files_in_repository,
     create_file_tree,
@@ -19,7 +19,7 @@ from agent.graph_function import (
 )
 from pydantic import BaseModel, Field, conlist
 import uvicorn
-from agent.graph_flow import grade_code
+from agent.graph_flow import grade_code, grade_streaming_fn
 from config.constants import SUPPORTED_EXTENSIONS
 
 app = FastAPI(docs_url="/")
@@ -84,7 +84,28 @@ async def grade_code_rt(body: GradeCodeRequest):
             detail="No valid files selected. Please select at least one file to grade.",
         )
     output = await grade_code(file_paths, body.criterias_list, body.project_description)
+    print(file_paths)
+    print("criterias_list", body.criterias_list)
+    print("project_description", body.project_description)
     return JSONResponse(content=output)
+
+
+@app.post("/grade-code-stream/", status_code=200)
+async def grade_code_stream_rt(body: GradeCodeRequest):
+    file_paths = filter_file_paths(body.selected_files)
+
+    if not file_paths:
+        return JSONResponse(content="Not have any files path", status_code=404)
+
+    return StreamingResponse(
+        grade_streaming_fn(file_paths, body.criterias_list, body.project_description),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 class GradeOverallInterface(BaseModel):

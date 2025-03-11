@@ -24,23 +24,17 @@ check_relevant_criteria_prompt = PromptTemplate.from_template(
 Assess code relevance to criteria scope
 
 Inputs:
-- File tree: {file_tree}
-- Current file: {file_name}
-{project_description}
+
 - Criteria: {criterias}
 
-Rules:
-1. Check which part criteria relate to (library, testing, documentation, UI, FE, BE)
-2. Return 1 if relevant, 0 if not
-3. Consider file extensions (.css, .py, .ts, .java)
+- Code: 
+```
+{code}
+```
 
-Examples:
-1. Criteria: Unit test for core logic
-   - Styling/docs: 0
-   - Unit tests: 1
-2. Criteria: Clear README instructions
-   - CSS/HTML: 0
-   - .md files: 1
+If the criteria cannot meaningfully evaluate at least 40% of the file's content, return False. 
+For example, if styling criteria is being applied to a file that contains some styling elements but is predominantly logic code, return True only if the styling elements make up at least 50% of the total code content. 
+Return False when the file contains less than 40% of the content type that the criteria is designed to evaluate.
 """
 )
 
@@ -56,10 +50,11 @@ Code:
 {code}
 
 Review Format:
-1. Comments:
+1. Comments: (Return in Markdown text)
    - line X: [code] #[issue, suggestion] 
    - line Y: [code] #[issue, suggestion]
-    Note: Always give briefly suggest improvements to increase rating score (in case score < 5). Only show suggestion for issue lines    Return in Markdown text
+    Note: Always give briefly suggest improvements to increase rating score (in case score < 5). Exclude lines that have no issues.
+        
 
 2. Criteria Analysis: Concise assessment with examples (Return in Markdown text)
 
@@ -107,5 +102,3 @@ Rating Scale: Based on the comments on each file to give the most objective asse
 5 = Excellent (Senior)
 """
 )
-
-

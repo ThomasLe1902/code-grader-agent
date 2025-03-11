@@ -18,8 +18,8 @@ llm_4o_mini = AzureChatOpenAI(
 
 
 class CheckRelevantCriteriaOutput(BaseModel):
-    relevant_criteria: int = Field(
-        ..., description="1 if the criteria is relevant, 0 if not relevant"
+    relevant_criteria: bool = Field(
+        ..., description="True if the criteria is designed to evaluate the file content Else return False"
     )
 
 
