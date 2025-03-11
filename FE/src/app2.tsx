@@ -1,398 +1,389 @@
-// import React, { useState } from "react";
-// import axios from "axios";
-// import { Button, Input, Select, message } from "antd";
-// import { GoFileDirectoryFill } from "react-icons/go";
-// import { CiFileOn } from "react-icons/ci";
-// import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
-// import { marked } from "marked";
-// import "./components/GradingResults/style.css";
-
-// // TypeScript interface for a tree node
-// interface TreeNode {
-//   label: string;
-//   value: string;
-//   children?: TreeNode[];
-// }
-
-// // Interface for grading result
-// interface GradingResult {
-//   selected_files: string[];
-//   criterias: string;
-//   analyze_code_result: Array<{
-//     file_name: string;
-//     comment: string;
-//     criteria_eval: string;
-//     rating: number;
-//   }>;
-//   grade_criteria: string;
-// }
-
-// interface FileTreeProps {
-//   nodes: TreeNode[];
-//   onFileSelection: (selectedFiles: string[]) => void; // Pass selected files to parent component
-// }
-
-// const FileTree: React.FC<FileTreeProps> = ({ nodes, onFileSelection }) => {
-//   const [openNodes, setOpenNodes] = useState<string[]>([]);
-//   const [checkedNodes, setCheckedNodes] = useState<string[]>([]);
-
-//   const toggleNode = (value: string) => {
-//     setOpenNodes((prev) =>
-//       prev.includes(value)
-//         ? prev.filter((node) => node !== value)
-//         : [...prev, value]
-//     );
-//   };
-
-//   const toggleCheck = (node: TreeNode) => {
-//     const value = node.value;
-//     const isChecked = checkedNodes.includes(value);
-
-//     if (isChecked) {
-//       const newCheckedNodes = checkedNodes.filter((v) => v !== value);
-//       setCheckedNodes(newCheckedNodes);
-//       updateSelectedFiles(newCheckedNodes);
-//     } else {
-//       // Add node and its children to checkedNodes
-//       const newCheckedNodes = [...checkedNodes, value];
-//       if (node.children) {
-//         node.children.forEach((child) => newCheckedNodes.push(child.value));
-//       }
-//       setCheckedNodes(newCheckedNodes);
-//       updateSelectedFiles(newCheckedNodes);
-//     }
-//   };
-
-//   // Update selected files in parent component
-//   const updateSelectedFiles = (selectedFiles: string[]) => {
-//     onFileSelection(selectedFiles);
-//   };
-
-//   const renderTree = (node: TreeNode) => {
-//     const isOpen = openNodes.includes(node.value);
-//     const isChecked = checkedNodes.includes(node.value);
-
-//     const isDirectory = !!node.children;
-
-//     return (
-//       <li key={node.value} style={{ listStyle: "none", marginBottom: "8px" }}>
-//         <div style={{ display: "flex", alignItems: "center" }}>
-//           <input
-//             type="checkbox"
-//             checked={isChecked}
-//             onChange={() => toggleCheck(node)}
-//           />
-//           <span
-//             style={{
-//               marginLeft: "8px",
-//               cursor: "pointer",
-//               color: isDirectory ? "blue" : "green",
-//               fontWeight: isDirectory ? "bold" : "normal",
-//             }}
-//             onClick={() => isDirectory && toggleNode(node.value)}
-//           >
-//             <div className="flex items-center">
-//               {isDirectory ? (
-//                 isOpen ? (
-//                   <GoFileDirectoryFill />
-//                 ) : (
-//                   "📁"
-//                 )
-//               ) : (
-//                 <CiFileOn />
-//               )}
-//               {node.label}
-//             </div>
-//           </span>
-//         </div>
-
-//         {isDirectory && isOpen && (
-//           <ul style={{ paddingLeft: "20px" }}>
-//             {node.children!.map((child) => renderTree(child))}
-//           </ul>
-//         )}
-//       </li>
-//     );
-//   };
-
-//   return <ul>{nodes.map((node) => renderTree(node))}</ul>;
-// };
-
-// // GradingResultView component
-// const GradingResultView: React.FC<{ result: GradingResult }> = ({ result }) => {
-//   // Add check for result and analyze_code_result
-//   if (!result || !result.analyze_code_result) {
-//     return <div>No grading results available</div>;
-//   }
-
-//   return (
-//     <div className="mt-6">
-//       <h3 className="text-lg font-medium mb-4">Grading Results</h3>
-//       <div className="space-y-6">
-//         {result.analyze_code_result.map((fileResult, index) => (
-//           <div key={index} className="border rounded-lg bg-white p-6 shadow-sm">
-//             <h4 className="text-xl font-semibold text-blue-600 mb-4">
-//               {fileResult.file_name.split("/").pop()}
-//             </h4>
-
-//             <div className="mb-4">
-//               <h5 className="text-lg font-medium text-gray-700 mb-2">
-//                 Overview
-//               </h5>
-//               <p className="text-gray-600 whitespace-pre-wrap">
-//                 {fileResult.comment}
-//               </p>
-//             </div>
-
-//             <div>
-//               <h5 className="text-lg font-medium text-gray-700 mb-2">
-//                 Detailed Evaluation
-//               </h5>
-//               <div
-//                 className="prose max-w-none"
-//                 dangerouslySetInnerHTML={{
-//                   __html: marked(fileResult.criteria_eval),
-//                 }}
-//               />
-//             </div>
-//           </div>
-//         ))}
-
-//         {result.grade_criteria && (
-//           <div className="border rounded-lg bg-white p-6 shadow-sm">
-//             <h4 className="text-xl font-semibold text-blue-600 mb-4">
-//               Overall Grade Criteria
-//             </h4>
-//             <div
-//               className="prose max-w-none"
-//               dangerouslySetInnerHTML={{
-//                 __html: marked(result.grade_criteria),
-//               }}
-//             />
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
+// import { useCallback, useEffect, useState } from "react";
+// import {
+//   DEFAULT_CRITERIA_FE,
+//   DEFAULT_CRITERIA_BE,
+//   DEFAULT_REPO_URL,
+//   EXTENSION_OPTIONS,
+// } from "./constant";
+// import { GradeResponse, GradingResult, TreeNode } from "./types";
+// import { apiService } from "./api/service";
+// import {
+//   Button,
+//   Card,
+//   Input,
+//   message,
+//   Typography,
+//   Badge,
+//   Drawer,
+//   Space,
+//   FloatButton,
+// } from "antd";
+// import { FileOutlined, EyeOutlined } from "@ant-design/icons";
+// import FileTree from "./components/FileTree";
+// import CriteriaInput from "./components/CriteriaInput";
+// import GradingResultView from "./components/GradingResults";
+// import Header from "./layout/Header";
+// import RepositoryConfig from "./components/RepositoryConfig";
+// const { Title } = Typography;
 
 // const App: React.FC = () => {
-//   const [repoUrl, setRepoUrl] = useState(
-//     "https://github.com/tharain/react-tree-file-system"
-//   );
+//   const [messageApi, contextHolder] = message.useMessage();
+
+//   const [repoUrl, setRepoUrl] = useState(DEFAULT_REPO_URL);
 //   const [fileTreeData, setFileTreeData] = useState<TreeNode[]>([]);
 //   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-//   const [criterias, setCriterias] = useState<string[]>([""]); // Start with one empty criteria
+//   const [criterias, setCriterias] = useState<string[]>(DEFAULT_CRITERIA_FE);
 //   const [loading, setLoading] = useState(false);
 //   const [gradeLoading, setGradeLoading] = useState(false);
 //   const [error, setError] = useState("");
-//   const [gradeResult, setGradeResult] = useState<GradingResult | null>(null);
-
-//   const extensionOptions = [
-//     { label: "Python", value: ".py" },
-//     { label: "JavaScript", value: ".js" },
-//     { label: "TypeScript", value: ".ts" },
-//     { label: "HTML", value: ".html" },
-//     { label: "CSS", value: ".css" },
-//     { label: "TSX", value: ".tsx" },
-//     { label: "Java", value: ".java" },
-//     { label: "CPP", value: ".cpp" },
-//     { label: "C", value: ".c" },
-//     { label: "Go", value: ".go" },
-//     { label: "Swift", value: ".swift" },
-//     { label: "Rust", value: ".rs" },
-//     { label: "Kotlin", value: ".kt" },
-//     { label: "PHP", value: ".php" },
-//     { label: "CSharp", value: ".cs" },
-//   ];
+//   const [gradeResult, setGradeResult] = useState<GradingResult[] | []>([]);
+//   const [projectDescription, setProjectDescription] = useState<string>("");
 //   const [selectedExtensions, setSelectedExtensions] = useState<string[]>(
-//     extensionOptions.map((option) => option.value)
+//     EXTENSION_OPTIONS.map((option) => option.value)
 //   );
-//   const fetchFileTreeData = async () => {
+//   const [isFilesDrawerOpen, setIsFilesDrawerOpen] = useState(false);
+
+//   const fetchFileTreeData = useCallback(async () => {
 //     setLoading(true);
+//     setFileTreeData([]);
+//     setSelectedFiles([]);
 //     setError("");
-//     try {
-//       const response = await axios.post(
-//         "http://127.0.0.1:8000/get-file-tree/",
-//         {
-//           url: repoUrl,
-//           extensions: selectedExtensions,
-//         }
-//       );
-//       setFileTreeData(response.data.file_tree);
-//     } catch (err) {
-//       setError("Failed to fetch file tree data");
-//     } finally {
-//       setLoading(false);
+//     setGradeResult([]);
+//     setProjectDescription("");
+//     setGradeLoading(false);
+//     messageApi.loading({
+//       content: "Cloning repository...",
+//       key: "fetch-repo",
+//       duration: 0,
+//     });
+//     const { data, error: fetchError } = await apiService.fetchFileTree(
+//       repoUrl,
+//       selectedExtensions
+//     );
+
+//     if (data) {
+//       setFileTreeData(data);
+//       messageApi.success({
+//         content: "Repository cloned successfully!",
+//         key: "fetch-repo",
+//         duration: 3,
+//       });
+//     } else if (fetchError) {
+//       setError(fetchError);
+//       setFileTreeData([]);
+//       messageApi.error({
+//         content: fetchError,
+//         key: "fetch-repo",
+//         duration: 3,
+//       });
 //     }
-//   };
 
-//   const handleExtensionChange = (value: string[]) => {
+//     setLoading(false);
+//   }, [repoUrl, selectedExtensions]);
+
+//   const handleExtensionChange = useCallback((value: string[]) => {
 //     setSelectedExtensions(value);
-//   };
+//   }, []);
+//   const handleSetFECriteria = useCallback(() => {
+//     setCriterias(DEFAULT_CRITERIA_FE);
+//     messageApi.success("Frontend criteria loaded");
+//   }, []);
 
-//   const handleFileSelection = (files: string[]) => {
+//   const handleSetBECriteria = useCallback(() => {
+//     setCriterias(DEFAULT_CRITERIA_BE);
+//     messageApi.success("Backend criteria loaded");
+//   }, []);
+
+//   const handleFileSelection = useCallback((files: string[]) => {
 //     setSelectedFiles(files);
-//   };
+//   }, []);
 
-//   const addCriteriaField = () => {
-//     setCriterias([...criterias, ""]);
-//   };
+//   const showSelectedFiles = useCallback(() => {
+//     setIsFilesDrawerOpen(true);
+//   }, []);
 
-//   const removeCriteriaField = (index: number) => {
-//     const newCriterias = [...criterias];
-//     newCriterias.splice(index, 1);
-//     setCriterias(newCriterias);
-//   };
+//   const closeFilesDrawer = useCallback(() => {
+//     setIsFilesDrawerOpen(false);
+//   }, []);
+//   const generateDescription = useCallback(async () => {
+//     if (selectedFiles.length === 0) {
+//       messageApi.error({
+//         content: "Please select files first",
+//         key: "description-generation",
+//         duration: 3,
+//       });
+//       return;
+//     }
 
-//   const handleCriteriaChange = (value: string, index: number) => {
-//     const newCriterias = [...criterias];
-//     newCriterias[index] = value;
-//     setCriterias(newCriterias);
-//   };
+//     messageApi.loading({
+//       content: "Generating project description...",
+//       key: "description-generation",
+//       duration: 0,
+//     });
 
-//   const gradeCode = async () => {
-//     // Filter out empty criteria
+//     const { data, error } = await apiService.generateProjectDescription(
+//       selectedFiles
+//     );
+
+//     if (data) {
+//       setProjectDescription(data);
+//       messageApi.success({
+//         content: "Description generated successfully!",
+//         key: "description-generation",
+//         duration: 3,
+//       });
+//     } else if (error) {
+//       messageApi.error({
+//         content: error,
+//         key: "description-generation",
+//         duration: 3,
+//       });
+//     }
+//   }, [selectedFiles]);
+
+//   const gradeCode = useCallback(async () => {
+//     setError("");
+//     setGradeResult([]);
+//     setGradeLoading(true);
+
+//     if (selectedFiles.length === 0) {
+//       messageApi.error({
+//         content: "Please select at least one file to grade",
+//         key: "file-selection",
+//         duration: 3,
+//       });
+//       return;
+//     }
+
 //     const validCriterias = criterias.filter(
 //       (criteria) => criteria.trim() !== ""
 //     );
-
-//     if (selectedFiles.length === 0) {
-//       message.error("Please select at least one file to grade");
-//       return;
-//     }
-
 //     if (validCriterias.length === 0) {
-//       message.error("Please add at least one grading criteria");
+//       messageApi.error({
+//         content: "Please add at least one grading criteria",
+//         key: "criteria-validation",
+//         duration: 3,
+//       });
 //       return;
 //     }
 
-//     setGradeLoading(true);
-//     setError("");
 //     try {
-//       const response = await axios.post("http://127.0.0.1:8000/grade-code/", {
-//         selected_files: selectedFiles,
-//         criterias_list: validCriterias,
+//       const response = await apiService.gradeCodeStream(
+//         selectedFiles,
+//         validCriterias,
+//         projectDescription
+//       );
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP error! status: ${response.status}`);
+//       }
+
+//       const reader = response.body?.getReader();
+//       const decoder = new TextDecoder();
+
+//       if (!reader) {
+//         throw new Error("Stream reader not available");
+//       }
+
+//       messageApi.loading({
+//         content: "Grading in progress...",
+//         key: "grading",
+//         duration: 0,
 //       });
-//       // The API returns an array, but we need the first item
-//       setGradeResult(response.data[0]);
-//       message.success("Code graded successfully");
-//     } catch (err) {
-//       setError("Failed to grade code");
-//       message.error("Failed to grade code");
+//       while (true) {
+//         const { done, value } = await reader.read();
+
+//         if (done) {
+//           break;
+//         }
+//         const chunk: GradeResponse = JSON.parse(
+//           decoder.decode(value, { stream: true })
+//         );
+//         if (chunk.type === "noti") {
+//           messageApi.loading({
+//             content: chunk.output as string,
+//             key: "grading",
+//             duration: 0,
+//           });
+//         } else if (chunk.type === "final") {
+//           setGradeResult(chunk.output as GradingResult[]);
+//         }
+//       }
+
+//       messageApi.success({
+//         content: "Code graded successfully!",
+//         key: "grading",
+//         duration: 3,
+//       });
+//     } catch (error) {
+//       const errorMessage =
+//         error instanceof Error ? error.message : "An unexpected error occurred";
+//       setError(errorMessage);
+//       messageApi.error({
+//         content: errorMessage,
+//         key: "grading",
+//         duration: 3,
+//       });
 //     } finally {
 //       setGradeLoading(false);
 //     }
-//   };
+//   }, [selectedFiles, criterias, projectDescription]);
+
+//   useEffect(() => {
+//     setSelectedFiles([]);
+//   }, [fileTreeData]);
 
 //   return (
-//     <div className="container mx-auto p-4">
-//       <div className="font-bold text-blue-400 text-3xl mb-6">Grade Code</div>
-//       <div className="mb-6">
-//         <Input
-//           type="text"
-//           value={repoUrl}
-//           onChange={(e) => setRepoUrl(e.target.value)}
-//           placeholder="Enter GitHub repository URL"
-//           className="mb-4"
-//         />
-//         <Select
-//           mode="multiple"
-//           className="w-full mb-4"
-//           placeholder="Select extensions"
-//           onChange={handleExtensionChange}
-//           options={extensionOptions}
-//           defaultValue={selectedExtensions}
-//         />
-//         <Button
-//           type="primary"
-//           onClick={fetchFileTreeData}
-//           disabled={loading}
-//           className="mb-4"
-//         >
-//           {loading ? "Loading..." : "Clone"}
-//         </Button>
-//       </div>
+//     <>
+//       {contextHolder}
+//       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+//         <div className="container mx-auto max-w-6xl">
+//           <Header />
 
-//       {error && <p className="text-red-500 mb-4">{error}</p>}
+//           <RepositoryConfig
+//             repoUrl={repoUrl}
+//             loading={loading}
+//             selectedExtensions={selectedExtensions}
+//             onRepoUrlChange={setRepoUrl}
+//             onExtensionChange={handleExtensionChange}
+//             onFetchFiles={fetchFileTreeData}
+//           />
+//           {error && (
+//             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+//               <p className="text-red-600">{error}</p>
+//             </div>
+//           )}
 
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//         <div>
-//           <h3 className="text-lg font-medium mb-2">File Tree:</h3>
-//           <div className="border rounded p-4 bg-gray-50 min-h-64">
-//             {fileTreeData.length > 0 ? (
-//               <FileTree
-//                 nodes={fileTreeData}
-//                 onFileSelection={handleFileSelection}
-//               />
-//             ) : (
-//               <p className="text-gray-500">
-//                 No files to display. Clone a repository first.
-//               </p>
-//             )}
-//           </div>
-//         </div>
-
-//         <div>
-//           <h3 className="text-lg font-medium mb-2">Grading Criteria:</h3>
-//           <div className="border rounded p-4 bg-gray-50">
-//             {criterias.map((criteria, index) => (
-//               <div key={index} className="flex items-center mb-3">
-//                 <Input.TextArea
-//                   value={criteria}
-//                   onChange={(e) => handleCriteriaChange(e.target.value, index)}
-//                   placeholder={`Enter criteria ${index + 1}`}
-//                   autoSize={{ minRows: 2, maxRows: 4 }}
-//                   className="flex-grow mr-2"
-//                 />
-//                 {criterias.length > 1 && (
-//                   <Button
-//                     type="text"
-//                     danger
-//                     icon={<MinusOutlined />}
-//                     onClick={() => removeCriteriaField(index)}
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+//             <Card
+//               title={<Title level={4}>File Tree</Title>}
+//               className="shadow-sm hover:shadow-md transition-shadow"
+//               extra={
+//                 selectedFiles.length > 0 && (
+//                   <Badge count={selectedFiles.length} color="blue">
+//                     <Button
+//                       icon={<EyeOutlined />}
+//                       onClick={showSelectedFiles}
+//                       type="primary"
+//                       ghost
+//                     >
+//                       Selected Files
+//                     </Button>
+//                   </Badge>
+//                 )
+//               }
+//             >
+//               <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
+//                 {fileTreeData.length > 0 ? (
+//                   <FileTree
+//                     nodes={fileTreeData}
+//                     onFileSelection={handleFileSelection}
 //                   />
-//                 )}
-//                 {index === criterias.length - 1 && (
-//                   <Button
-//                     type="text"
-//                     icon={<PlusOutlined />}
-//                     onClick={addCriteriaField}
-//                   />
+//                 ) : (
+//                   <div className="h-full flex items-center justify-center text-gray-500">
+//                     <p>No files to display. Clone a repository first.</p>
+//                   </div>
 //                 )}
 //               </div>
-//             ))}
+//             </Card>
+
+//             <Card
+//               title={<Title level={4}>Grading Criteria</Title>}
+//               className="shadow-sm hover:shadow-md transition-shadow"
+//               extra={
+//                 <Space>
+//                   <Button
+//                     type="default"
+//                     size="small"
+//                     onClick={handleSetFECriteria}
+//                   >
+//                     Use FE Criteria
+//                   </Button>
+//                   <Button
+//                     type="default"
+//                     size="small"
+//                     onClick={handleSetBECriteria}
+//                   >
+//                     Use BE Criteria
+//                   </Button>
+//                 </Space>
+//               }
+//             >
+//               <div className="flex gap-2 mb-4">
+//                 <Input.TextArea
+//                   size="large"
+//                   value={projectDescription}
+//                   onChange={(e) => setProjectDescription(e.target.value)}
+//                   placeholder="Enter project description (optional)"
+//                   className="!rounded-lg"
+//                   rows={4}
+//                 />
+//                 <Button
+//                   onClick={generateDescription}
+//                   disabled={selectedFiles.length === 0}
+//                 >
+//                   Generate
+//                 </Button>
+//               </div>
+//               <div className="space-y-4">
+//                 <CriteriaInput
+//                   criterias={criterias}
+//                   setCriterias={setCriterias}
+//                 />
+//                 <Button
+//                   type="primary"
+//                   size="large"
+//                   className="w-full !bg-green-500 hover:!bg-green-600 disabled:opacity-50"
+//                   onClick={gradeCode}
+//                   disabled={
+//                     gradeLoading ||
+//                     selectedFiles.length === 0 ||
+//                     criterias.filter((c) => c.trim() !== "").length === 0
+//                   }
+//                   loading={gradeLoading}
+//                 >
+//                   {gradeLoading ? "Grading Code..." : "Grade Selected Files"}
+//                 </Button>
+//               </div>
+//             </Card>
 //           </div>
 
-//           <Button
-//             type="primary"
-//             className="mt-4 bg-green-500"
-//             onClick={gradeCode}
-//             disabled={gradeLoading || selectedFiles.length === 0}
+//           {/* Drawer for selected files */}
+//           <Drawer
+//             title={
+//               <div className="flex items-center">
+//                 <FileOutlined className="mr-2" />
+//                 <span>Selected Files ({selectedFiles.length})</span>
+//               </div>
+//             }
+//             placement="right"
+//             onClose={closeFilesDrawer}
+//             open={isFilesDrawerOpen}
+//             width={400}
 //           >
-//             {gradeLoading ? "Grading..." : "Grade Code"}
-//           </Button>
-//         </div>
-//       </div>
+//             {selectedFiles.length > 0 ? (
+//               <ul className="list-disc pl-5 space-y-2">
+//                 {selectedFiles.map((file) => (
+//                   <li
+//                     key={file}
+//                     className="text-gray-700 py-1 border-b border-gray-100"
+//                   >
+//                     {file}
+//                   </li>
+//                 ))}
+//               </ul>
+//             ) : (
+//               <div className="flex items-center justify-center h-full">
+//                 <p className="text-gray-500">No files selected</p>
+//               </div>
+//             )}
+//           </Drawer>
 
-//       <div className="mt-6">
-//         <h3 className="text-lg font-medium mb-2">Selected Files:</h3>
-//         <div className="border rounded p-4 bg-gray-50">
-//           {selectedFiles.length > 0 ? (
-//             <ul className="list-disc pl-5">
-//               {selectedFiles.map((file) => (
-//                 <li key={file}>{file}</li>
-//               ))}
-//             </ul>
-//           ) : (
-//             <p className="text-gray-500">No files selected</p>
-//           )}
+//           {gradeResult && <GradingResultView results={gradeResult} />}
 //         </div>
+//         <FloatButton.BackTop />
 //       </div>
-
-//       {/* Use the GradingResultView component to display results */}
-//       {gradeResult && <GradingResultView result={gradeResult} />}
-//     </div>
+//     </>
 //   );
 // };
 

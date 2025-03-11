@@ -1,74 +1,134 @@
-import { useState } from 'react';
-import axios from 'axios';
-import { message } from 'antd';
-import { GradingResult, TreeNode } from '../types';
+import { useState, useCallback } from 'react';
+import { MessageInstance } from 'antd/es/message/interface';
+import { GradeResponse, GradingResult } from '../types';
+import { apiService } from '../api/service';
+import { DEFAULT_CRITERIA_BE, DEFAULT_CRITERIA_FE } from '../constant';
 
-export const useGrading = () => {
-  const [fileTreeData, setFileTreeData] = useState<TreeNode[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [criterias, setCriterias] = useState<string[]>(['']);
-  const [loading, setLoading] = useState(false);
+
+interface UseGradingProps {
+  messageApi: MessageInstance;
+  selectedFiles: string[];
+  projectDescription: string;
+}
+
+export const useGrading = ({ messageApi, selectedFiles, projectDescription }: UseGradingProps) => {
+  const [criteria, setCriteria] = useState<string[]>(DEFAULT_CRITERIA_FE);
   const [gradeLoading, setGradeLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [gradeResult, setGradeResult] = useState<GradingResult | null>(null);
+  const [error, setError] = useState("");
+  const [gradeResult, setGradeResult] = useState<GradingResult[]>([]);
 
-  const fetchFileTree = async (url: string, extensions: string[]) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.post('http://127.0.0.1:8000/get-file-tree/', {
-        url,
-        extensions,
-      });
-      setFileTreeData(response.data.file_tree);
-    } catch (err) {
-      setError('Failed to fetch file tree data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadFrontendCriteria = useCallback(() => {
+    setCriteria(DEFAULT_CRITERIA_FE);
+    messageApi.success("Frontend criteria loaded");
+  }, [messageApi]);
 
-  const gradeCode = async () => {
-    const validCriterias = criterias.filter(criteria => criteria.trim() !== '');
-    
-    if (selectedFiles.length === 0) {
-      message.error('Please select at least one file to grade');
-      return;
-    }
+  const loadBackendCriteria = useCallback(() => {
+    setCriteria(DEFAULT_CRITERIA_BE);
+    messageApi.success("Backend criteria loaded");
+  }, [messageApi]);
 
-    if (validCriterias.length === 0) {
-      message.error('Please add at least one grading criteria');
-      return;
-    }
-
+  const gradeCode = useCallback(async (criteriaToUse: string[]) => {
+    setError("");
+    setGradeResult([]);
     setGradeLoading(true);
-    setError('');
-    try {
-      const response = await axios.post('http://127.0.0.1:8000/grade-code/', {
-        selected_files: selectedFiles,
-        criterias_list: validCriterias,
+
+    if (selectedFiles.length === 0) {
+      messageApi.error({
+        content: "Please select at least one file to grade",
+        key: "file-selection",
+        duration: 3,
       });
-      setGradeResult(response.data[0]);
-      message.success('Code graded successfully');
-    } catch (err) {
-      setError('Failed to grade code');
-      message.error('Failed to grade code');
+      setGradeLoading(false);
+      return;
+    }
+
+    const validCriteria = criteriaToUse.filter(
+      (criteria) => criteria.trim() !== ""
+    );
+    
+    if (validCriteria.length === 0) {
+      messageApi.error({
+        content: "Please add at least one grading criteria",
+        key: "criteria-validation",
+        duration: 3,
+      });
+      setGradeLoading(false);
+      return;
+    }
+
+    try {
+      const response = await apiService.gradeCodeStream(
+        selectedFiles,
+        validCriteria,
+        projectDescription
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("Stream reader not available");
+      }
+
+      messageApi.loading({
+        content: "Grading in progress...",
+        key: "grading",
+        duration: 0,
+      });
+      
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+        
+        const chunk: GradeResponse = JSON.parse(
+          decoder.decode(value, { stream: true })
+        );
+        
+        if (chunk.type === "noti") {
+          messageApi.loading({
+            content: chunk.output as string,
+            key: "grading",
+            duration: 0,
+          });
+        } else if (chunk.type === "final") {
+          setGradeResult(chunk.output as GradingResult[]);
+        }
+      }
+
+      messageApi.success({
+        content: "Code graded successfully!",
+        key: "grading",
+        duration: 3,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      setError(errorMessage);
+      messageApi.error({
+        content: errorMessage,
+        key: "grading",
+        duration: 3,
+      });
     } finally {
       setGradeLoading(false);
     }
-  };
+  }, [selectedFiles, projectDescription, messageApi]);
 
   return {
-    fileTreeData,
-    selectedFiles,
-    criterias,
-    loading,
+    criteria,
+    setCriteria,
     gradeLoading,
-    error,
+    gradeError: error,
     gradeResult,
-    setSelectedFiles,
-    setCriterias,
-    fetchFileTree,
     gradeCode,
+    loadFrontendCriteria,
+    loadBackendCriteria
   };
 };

@@ -30,3 +30,7 @@ interface Status {
 export interface StatusConfig {
   [key: number]: Status;
 }
+export interface GradeResponse {
+  type: "noti" | "final";
+  output: string | GradingResult[];
+}

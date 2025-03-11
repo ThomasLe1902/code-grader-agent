@@ -30,6 +30,24 @@ export const apiService = {
       return { data: null, error: "Failed to grade code" };
     }
   },
+  gradeCodeStream: (
+    selectedFiles: string[],
+    criteriasList: string[],
+    projectDescription: string
+  ) => {
+    const url = new URL(`${API_BASE_URL}/grade-code-stream`);
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        selected_files: selectedFiles,
+        criterias_list: criteriasList,
+        project_description: projectDescription
+      })
+    });
+  },
   generateProjectDescription: async (selectedFiles: string[]) => {
     try {
       const response = await axios.post(

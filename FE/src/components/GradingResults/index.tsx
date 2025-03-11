@@ -29,7 +29,6 @@ const GradingResultView: React.FC<{
   const [activeTabKey, setActiveTabKey] = useState<string>("0");
   const [codeContent, setCodeContent] = useState<string>("");
   const [loadingGrade, setLoadingGrade] = useState<Record<string, boolean>>({});
-  console.log(gradeOverall);
   const handleViewDetails = (fileResult: {
     file_name: string;
     comment: string;
@@ -286,7 +285,7 @@ const GradingResultView: React.FC<{
             Grade Overall Result
           </Button>
           {gradeOverall[currentIndex] && (
-            <div className="border rounded-lg bg-white p-6 shadow-sm mt-6">
+            <div className="border rounded-lg bg-white p-6 shadow-sm mt-6 overflow-x-auto">
               <h4 className="text-xl font-semibold text-blue-600 mb-4">
                 Overall Grade Analysis
               </h4>
