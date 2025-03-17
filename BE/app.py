@@ -17,7 +17,7 @@ from agent.graph_function import (
     chain_project_description_generator,
     summarize_code_review_controller,
 )
-from pydantic import BaseModel, Field, conlist
+from pydantic import BaseModel, Field
 import uvicorn
 from agent.graph_flow import grade_code, grade_streaming_fn
 from config.constants import SUPPORTED_EXTENSIONS
@@ -70,6 +70,9 @@ async def get_file_tree(repo: RepoURL):
 
 class GradeCodeRequest(BaseModel):
     selected_files: List[str]
+    folder_structure_criteria: str = Field(
+        None, description="Folder structure criteria"
+    )
     criterias_list: List[str]
     project_description: str = Field(None, description="Project description")
 
@@ -98,7 +101,12 @@ async def grade_code_stream_rt(body: GradeCodeRequest):
         return JSONResponse(content="Not have any files path", status_code=404)
 
     return StreamingResponse(
-        grade_streaming_fn(file_paths, body.criterias_list, body.project_description),
+        grade_streaming_fn(
+            file_paths,
+            body.folder_structure_criteria,
+            body.criterias_list,
+            body.project_description,
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

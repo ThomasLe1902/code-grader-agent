@@ -2,12 +2,12 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.graph.state import CompiledStateGraph
 from .graph_function import State, ParentGraphState
 from .graph_function import (
-    project_description_generator_fn,
     check_relevant_criteria_fn,
     analyze_code_file_fn,
-    summarize_code_review_fn,
+    organized_project_structure_grade_fn,
 )
 import json
+from loguru import logger
 
 flow = StateGraph(State)
 
@@ -27,7 +27,6 @@ class AgentCodeGrader:
 
         self.flow.add_node("check_relevant_criteria", check_relevant_criteria_fn)
         self.flow.add_node("analyze_code_file", analyze_code_file_fn)
-        # self.flow.add_node("summarize_code_review", summarize_code_review_fn)
 
     def edge(self):
         self.flow.add_edge(START, "check_relevant_criteria")
@@ -39,7 +38,6 @@ class AgentCodeGrader:
                 "analyze_code_file": "analyze_code_file",
             },
         )
-        # self.flow.add_edge("analyze_code_file", "summarize_code_review")
         self.flow.add_edge("analyze_code_file", END)
 
     def __call__(self) -> CompiledStateGraph:
@@ -72,11 +70,32 @@ class AgentCodeGraderMultiCriterias:
     def __init__(self):
         self.flow = StateGraph(ParentGraphState)
 
+    @staticmethod
+    def routing_before_start(state: ParentGraphState):
+
+        if not state["folder_structure_criteria"]:
+            return "agent_processing"
+        else:
+            return "grade_folder_structure"
+
     def node(self):
+        self.flow.add_node(
+            "grade_folder_structure", organized_project_structure_grade_fn
+        )
         self.flow.add_node("agent_processing", agent_processing_fn)
 
     def edge(self):
+        # self.flow.add_conditional_edges(
+        #     START,
+        #     self.routing_before_start,
+        #     {
+        #         "grade_folder_structure": "grade_folder_structure",
+        #         "agent_processing": "agent_processing",
+        #     },
+        # )
+        self.flow.add_edge(START, "grade_folder_structure")
         self.flow.add_edge(START, "agent_processing")
+        self.flow.add_edge("grade_folder_structure", END)
         self.flow.add_edge("agent_processing", END)
 
     def __call__(self) -> CompiledStateGraph:
@@ -90,6 +109,7 @@ agent_graph = AgentCodeGraderMultiCriterias()()
 
 async def grade_code(
     selected_files: list[str],
+    folder_structure_criteria: str,
     criterias_list: list[str],
     project_description: str = None,
 ):
@@ -109,37 +129,74 @@ async def grade_code(
     return output
 
 
-async def grade_streaming_fn(file_paths, criterias_list, project_description):
+async def grade_streaming_fn(
+    file_paths: list[str],
+    folder_structure_criteria: str,
+    criterias_list: list[str],
+    project_description: str = None,
+):
+    number_of_criteria = len(criterias_list) * 2 + 1
     initial_input = {
         "selected_files": file_paths,
         "criterias_list": criterias_list,
+        "folder_structure_criteria": folder_structure_criteria,
         "project_description": project_description,
     }
+    processing_criteria = 0
     async for event in agent_graph.astream(
         input=initial_input,
         subgraphs=True,
     ):
         _, sub_event = event
+
         main_key: str = list(sub_event.keys())[0]
-        print(main_key)
+        logger.info(f"Processing step '{main_key}'")
         sub_event: dict = sub_event[main_key]
+        if not sub_event:
+            continue
         criteria = sub_event.get("criteria_index", None)
+        if processing_criteria < number_of_criteria:
+            processing_criteria += 1
+
         if not criteria:
-            print(sub_event["output"])
+            if main_key == "grade_folder_structure":
+                project_structure_response = json.dumps(
+                    {
+                        "type": "folder_structure",
+                        "output": sub_event.get("output_folder_structure", ""),
+                        "percentage": int(
+                            (processing_criteria / number_of_criteria) * 100
+                        ),
+                    },
+                    ensure_ascii=False,
+                )
+                yield project_structure_response + "\n\n"
+                continue
+
             final_response = json.dumps(
-                {"type": "final", "output": sub_event["output"]}, ensure_ascii=False
+                {
+                    "type": "final",
+                    "output": sub_event.get("output", ""),
+                    "percentage": 100,
+                },
+                ensure_ascii=False,
             )
-            yield final_response
+            yield final_response + "\n\n"
             continue
         main_key_processed = main_key.replace("_", " ")
-        print(f"Processing step '{main_key_processed}' of criteria index {criteria}")
+
         noti_response = json.dumps(
             (
                 {
                     "type": "noti",
                     "output": f"Processing step '{main_key_processed}' of criteria index {criteria}",
+                    "percentage": int((processing_criteria / number_of_criteria) * 100),
                 }
             ),
             ensure_ascii=False,
         )
+        logger.info(
+            f"Processing step '{main_key_processed}' of criteria index {criteria}*"
+        )
+
         yield noti_response + "\n\n"

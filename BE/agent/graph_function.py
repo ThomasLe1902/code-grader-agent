@@ -1,4 +1,5 @@
 from config.llm import (
+    chain_organized_project_structure_grade,
     chain_project_description_generator,
     chain_check_relevant_criteria,
     chain_analyze_code_file,
@@ -16,10 +17,13 @@ from loguru import logger
 
 
 class ParentGraphState(TypedDict):
+    folder_structure_criteria: Optional[str]
     project_description: Optional[str]
     selected_files: list[str]
     criterias_list: list[str]
+    criteria_index: str
     output: Any
+    output_folder_structure: str
 
 
 class State(TypedDict):
@@ -99,22 +103,6 @@ async def analyze_code_file_fn(state: State):
     return {"analyze_code_result": output, "criteria_index": criteria_index}
 
 
-async def summarize_code_review_fn(state: State):
-    logger.info("Summarizing code review...")
-    criterias = state["criterias"]
-    selected_files = state["selected_files"]
-    analyze_code_result = state["analyze_code_result"]
-
-    review_across_files = format_comment_across_file(
-        selected_files, analyze_code_result
-    )
-
-    review_response = await chain_summarize_code_review.ainvoke(
-        {"criterias": criterias, "review_summary": review_across_files}
-    )
-    return {"grade_criteria": review_response.content}
-
-
 async def summarize_code_review_controller(data):
 
     files_name = [item["file_name"] for item in data["analyze_code_result"]]
@@ -129,7 +117,20 @@ async def summarize_code_review_controller(data):
     return review_response.content
 
 
-def prepare_input_fn(state: ParentGraphState):
+async def organized_project_structure_grade_fn(state: ParentGraphState):
+    logger.info("Organizing project structure...")
     selected_files = state["selected_files"]
-    criterias_list = state["criterias_list"]
-    project_description = ""
+    criteria = state["folder_structure_criteria"]
+    if not criteria:
+        return {}
+    file_tree = build_tree(selected_files)
+
+    response = await chain_organized_project_structure_grade.ainvoke(
+        {
+            "file_tree": file_tree,
+            "criteria": criteria,
+        }
+    )
+    return {
+        "output_folder_structure": response.content,
+    }

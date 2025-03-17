@@ -1,12 +1,12 @@
 from langchain_openai import AzureChatOpenAI
 from config.prompt import (
+    organized_project_structure_grade_prompt,
     project_description_generator_prompt,
     check_relevant_criteria_prompt,
     analyze_code_files_prompt,
     grade_code_across_review_prompt,
 )
 from pydantic import BaseModel, Field
-from typing import Optional
 import os
 
 llm_4o_mini = AzureChatOpenAI(
@@ -19,16 +19,19 @@ llm_4o_mini = AzureChatOpenAI(
 
 class CheckRelevantCriteriaOutput(BaseModel):
     relevant_criteria: bool = Field(
-        ..., description="True if the criteria is designed to evaluate the file content Else return False"
+        ...,
+        description="True if the criteria is designed to evaluate the file content Else return False",
     )
 
 
 class AnaLyzeOutput(BaseModel):
     comment: str = Field(
-        ..., description="Comment for the code line need to be improved. Return in Markdown text"
+        ...,
+        description="Comment for the code line need to be improved. Return in Markdown text",
     )
     criteria_eval: str = Field(
-        ..., description="Criteria evaluation for the code file. Return in Markdown text"
+        ...,
+        description="Criteria evaluation for the code file. Return in Markdown text",
     )
     rating: int = Field(
         ...,
@@ -36,6 +39,9 @@ class AnaLyzeOutput(BaseModel):
     )
 
 
+chain_organized_project_structure_grade = (
+    organized_project_structure_grade_prompt | llm_4o_mini
+)
 chain_project_description_generator = project_description_generator_prompt | llm_4o_mini
 chain_check_relevant_criteria = (
     check_relevant_criteria_prompt
@@ -45,4 +51,6 @@ chain_analyze_code_file = (
     analyze_code_files_prompt | llm_4o_mini.with_structured_output(AnaLyzeOutput)
 )
 chain_summarize_code_review = grade_code_across_review_prompt | llm_4o_mini
+
+
 # chain_final_grade = final_grade_prompt | llm_4o_mini

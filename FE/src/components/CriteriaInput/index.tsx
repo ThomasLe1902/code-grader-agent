@@ -5,10 +5,14 @@ import { useCallback } from "react";
 interface CriteriaInputProps {
   criterias: string[];
   setCriterias: React.Dispatch<React.SetStateAction<string[]>>;
+  folderCriteria: string;
+  setFolderCriteria: React.Dispatch<React.SetStateAction<string>>;
 }
 const CriteriaInput: React.FC<CriteriaInputProps> = ({
   criterias,
   setCriterias,
+  folderCriteria,
+  setFolderCriteria,
 }) => {
   const addCriteriaField = useCallback(() => {
     setCriterias((prev) => [...prev, ""]);
@@ -38,6 +42,17 @@ const CriteriaInput: React.FC<CriteriaInputProps> = ({
 
   return (
     <div className="border rounded p-4 bg-gray-50">
+      <div className="mb-3">
+        Folder Structure Criteria:
+        <Input.TextArea
+          value={folderCriteria}
+          onChange={(e) => setFolderCriteria(e.target.value)}
+          placeholder="Enter folder criteria"
+          autoSize={{ minRows: 2, maxRows: 4 }}
+        />
+      </div>
+      <span className="mr-2">Other Criteria:</span>
+
       {criterias.map((criteria, index) => (
         <div key={index} className="flex items-center mb-3">
           <Input.TextArea

@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { message, FloatButton } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { message, FloatButton, Button, Modal, Progress } from "antd";
 import { DEFAULT_REPO_URL, EXTENSION_OPTIONS } from "../../constant";
 import { useFileTree } from "../../hooks/useFileTree";
 import { useGrading } from "../../hooks/useGrading";
@@ -8,10 +8,13 @@ import ErrorNotification from "../../components/ErrorNotification.tsx";
 import GradingPanel from "../../components/GradingPanel/index.tsx";
 import FileTreePanel from "../../components/FileTreePanel/index.tsx";
 import GradingResultView from "../../components/GradingResults/index.tsx";
+import { marked } from "marked";
+import { FolderOutlined } from "@ant-design/icons";
 
 const GradePage: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
-
+  const [isFolderStructureModalVisible, setIsFolderStructureModalVisible] =
+    useState(false);
   const [repoUrl, setRepoUrl] = useState(DEFAULT_REPO_URL);
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>(
     EXTENSION_OPTIONS.map((option) => option.value)
@@ -35,9 +38,13 @@ const GradePage: React.FC = () => {
   const {
     criteria,
     setCriteria,
+    folderCriteria,
+    setFolderCriteria,
     gradeLoading,
     gradeError,
     gradeResult,
+    gradeFolderStructureResult,
+    percentage,
     gradeCode,
     loadFrontendCriteria,
     loadBackendCriteria,
@@ -67,9 +74,36 @@ const GradePage: React.FC = () => {
       }
     });
   }, [generateProjectDescription, selectedFiles]);
-
   const error = treeError || gradeError;
-
+  useEffect(() => {
+    if (gradeLoading && percentage > 0) {
+      messageApi.open({
+        key: "grading-progress",
+        type: "loading",
+        content: (
+          <div className="flex flex-col">
+            <span>Grading in progress...</span>
+            <Progress
+              percent={percentage}
+              size="small"
+              status="active"
+              strokeColor={{
+                "0%": "#108ee9",
+                "100%": "#87d068",
+              }}
+            />
+          </div>
+        ),
+        duration: 0,
+      });
+    } else if (!gradeLoading && percentage === 100) {
+      messageApi.success({
+        key: "grading-progress",
+        content: "Grading completed!",
+        duration: 2,
+      });
+    }
+  }, [percentage, gradeLoading]);
   return (
     <>
       {contextHolder}
@@ -96,6 +130,8 @@ const GradePage: React.FC = () => {
             <GradingPanel
               criteria={criteria}
               setCriteria={setCriteria}
+              folderCriteria={folderCriteria}
+              setFolderCriteria={setFolderCriteria}
               projectDescription={projectDescription}
               setProjectDescription={setProjectDescription}
               onGenerateDescription={handleGenerateDescription}
@@ -111,9 +147,53 @@ const GradePage: React.FC = () => {
               gradeLoading={gradeLoading}
             />
           </div>
+          {gradeFolderStructureResult && (
+            <>
+              <Button
+                type="primary"
+                icon={<FolderOutlined />}
+                onClick={() => setIsFolderStructureModalVisible(true)}
+                className="mb-4"
+              >
+                View Folder Structure Evaluation
+              </Button>
 
+              <Modal
+                title={
+                  <div className="flex items-center space-x-2 text-lg">
+                    <FolderOutlined className="text-blue-500" />
+                    <span className="font-semibold">
+                      Folder Structure Evaluation
+                    </span>
+                  </div>
+                }
+                open={isFolderStructureModalVisible}
+                onCancel={() => setIsFolderStructureModalVisible(false)}
+                width="90%"
+                footer={[
+                  <Button
+                    key="close"
+                    onClick={() => setIsFolderStructureModalVisible(false)}
+                  >
+                    Close
+                  </Button>,
+                ]}
+              >
+                <div className="prose max-w-none">
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: marked(gradeFolderStructureResult),
+                    }}
+                  />
+                </div>
+              </Modal>
+            </>
+          )}
           {gradeResult.length > 0 && (
-            <GradingResultView results={gradeResult} />
+            <GradingResultView
+              results={gradeResult}
+              gradeFolderStructureResult={gradeFolderStructureResult}
+            />
           )}
         </div>
         <FloatButton.BackTop />

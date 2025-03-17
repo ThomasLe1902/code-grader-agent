@@ -4,3 +4,7 @@ streamlit
 tiktoken
 python-dotenv
 langgraph
+loguru
+fastapi
+langchain_openai
+uvicorn

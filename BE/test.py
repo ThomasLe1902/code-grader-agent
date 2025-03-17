@@ -33,12 +33,10 @@ async def main():
         sub_event: dict = sub_event[main_key]
         criteria = sub_event.get("criteria_index", None)
         if not criteria:
- 
-            yield  sub_event["output"] + "\n\n"
+
             continue
         main_key_processed = main_key.replace("_", " ")
         print(f"Processing step '{main_key_processed}' of criteria index {criteria}")
-        yield f"Processing step '{main_key_processed}' of criteria index {criteria}\n\n"
 
 
 if __name__ == "__main__":

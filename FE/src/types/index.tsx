@@ -31,6 +31,7 @@ export interface StatusConfig {
   [key: number]: Status;
 }
 export interface GradeResponse {
-  type: "noti" | "final";
+  type: "noti" | "final" | "folder_structure";
   output: string | GradingResult[];
+  percentage: number;
 }

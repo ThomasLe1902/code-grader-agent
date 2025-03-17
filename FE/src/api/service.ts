@@ -32,20 +32,22 @@ export const apiService = {
   },
   gradeCodeStream: (
     selectedFiles: string[],
+    folder_structure_criteria: string,
     criteriasList: string[],
     projectDescription: string
   ) => {
     const url = new URL(`${API_BASE_URL}/grade-code-stream`);
     return fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         selected_files: selectedFiles,
+        folder_structure_criteria: folder_structure_criteria,
         criterias_list: criteriasList,
-        project_description: projectDescription
-      })
+        project_description: projectDescription,
+      }),
     });
   },
   generateProjectDescription: async (selectedFiles: string[]) => {

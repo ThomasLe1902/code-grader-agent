@@ -16,8 +16,9 @@ import { statusConfig } from "../../constant";
 
 const GradingResultView: React.FC<{
   results: GradingResult[];
+  gradeFolderStructureResult?: string;
   setResults?: React.Dispatch<React.SetStateAction<GradingResult[]>>;
-}> = ({ results, setResults }) => {
+}> = ({ results, gradeFolderStructureResult, setResults }) => {
   const [localResults, setLocalResults] = useState<GradingResult[]>(results);
   const [gradeOverall, setGradeOverall] = useState<Record<string, string>>({});
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -153,7 +154,32 @@ const GradingResultView: React.FC<{
 
   const exportToExcel = () => {
     const workbook = XLSX.utils.book_new();
+    if (gradeFolderStructureResult) {
+      const folderStructureData = [
+        {
+          Section: "Folder Structure Evaluation",
+          Content: gradeFolderStructureResult
+            .replace(/\*\*/g, "")
+            .replace(/#/g, "")
+            .replace(/<[^>]*>?/gm, ""),
+        },
+      ];
 
+      const folderStructureSheet =
+        XLSX.utils.json_to_sheet(folderStructureData);
+      const fsWsCols = [
+        { wch: 20 }, // Section column
+        { wch: 100 }, // Content column
+      ];
+
+      folderStructureSheet["!cols"] = fsWsCols;
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        folderStructureSheet,
+        "Folder Structure"
+      );
+    }
     localResults.forEach((currentResults, index) => {
       if (!currentResults || !currentResults.analyze_code_result) {
         return;
@@ -181,21 +207,7 @@ const GradingResultView: React.FC<{
         Comments: "",
         Evaluation: "",
       });
-      const criteriaDetailsRow = {
-        "File Name": "Grading Criteria",
-        Rating: "",
-        "Rating Value": 0,
-        Comments: currentResults.grade_criteria
-          ? currentResults.grade_criteria
-              .replace(/\*\*/g, "")
-              .replace(/#/g, "")
-              .replace(/<[^>]*>?/gm, "")
-          : "No detailed criteria available",
-        Evaluation: "",
-      };
-      data.push(criteriaDetailsRow);
 
-      // Add overall grading if available
       if (gradeOverall[index]) {
         const overallGradeRow = {
           "File Name": "Overall Grade",
@@ -257,15 +269,6 @@ const GradingResultView: React.FC<{
       label: `Criteria ${index + 1}`,
       children: (
         <div>
-          <div className="flex justify-end mb-4">
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={exportToExcel}
-            >
-              Export to Excel
-            </Button>
-          </div>
           <Table
             columns={columns}
             dataSource={result.analyze_code_result}
@@ -312,6 +315,15 @@ const GradingResultView: React.FC<{
 
       {localResults.length > 0 ? (
         <>
+          <div className="flex justify-end mb-4">
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={exportToExcel}
+            >
+              Export to Excel
+            </Button>
+          </div>
           <Tabs
             activeKey={activeTabKey}
             onChange={handleTabChange}
@@ -358,7 +370,7 @@ const GradingResultView: React.FC<{
 
                     if (fileIndex !== undefined && fileIndex !== -1) {
                       handleRemoveFile(fileIndex);
-                      handleCancel(); 
+                      handleCancel();
                     }
                   }}
                 >

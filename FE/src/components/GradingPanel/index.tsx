@@ -6,6 +6,8 @@ const { Title } = Typography;
 interface GradingPanelProps {
   criteria: string[];
   setCriteria: React.Dispatch<React.SetStateAction<string[]>>;
+  folderCriteria: string;
+  setFolderCriteria: React.Dispatch<React.SetStateAction<string>>;
   projectDescription: string;
   setProjectDescription: (description: string) => void;
   onGenerateDescription: () => void;
@@ -20,6 +22,8 @@ interface GradingPanelProps {
 const GradingPanel: React.FC<GradingPanelProps> = ({
   criteria,
   setCriteria,
+  folderCriteria,
+  setFolderCriteria,
   projectDescription,
   setProjectDescription,
   onGenerateDescription,
@@ -61,6 +65,8 @@ const GradingPanel: React.FC<GradingPanelProps> = ({
       <div className="space-y-4">
         <CriteriaInput
           criterias={criteria}
+          folderCriteria={folderCriteria}
+          setFolderCriteria={setFolderCriteria}
           setCriterias={
             setCriteria as React.Dispatch<React.SetStateAction<string[]>>
           }

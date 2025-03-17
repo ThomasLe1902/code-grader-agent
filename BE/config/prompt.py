@@ -1,7 +1,32 @@
 from langchain_core.prompts import PromptTemplate
 
 
-# Project Analysis Prompts
+organized_project_structure_grade_prompt = PromptTemplate.from_template(
+"""
+Analyze the project's folder structure and organization
+
+File Tree:
+{file_tree}
+
+Criteria to Evaluate:
+{criteria}
+
+Please provide:
+1. Analysis: Detailed review of folder structure (in Markdown)
+2. Suggestions: Specific improvements if needed
+3. Rating (1-5):
+   1 = Poor (Disorganized, no clear structure)
+   2 = Below Average (Basic structure but inconsistent)
+   3 = Average (Standard structure with some organization)
+   4 = Good (Well-organized with clear separation)
+   5 = Excellent (Optimal structure following best practices)
+
+Note: Consider the project size when evaluating - smaller projects may not need all folders but should still maintain clear organization.
+"""
+)
+
+
+
 project_description_generator_prompt = PromptTemplate.from_template(
     """
 Generate a concise project description by analyzing this file tree.
@@ -32,9 +57,12 @@ Inputs:
 {code}
 ```
 
-If the criteria cannot meaningfully evaluate at least 40% of the file's content, return False. 
-For example, if styling criteria is being applied to a file that contains some styling elements but is predominantly logic code, return True only if the styling elements make up at least 50% of the total code content. 
-Return False when the file contains less than 40% of the content type that the criteria is designed to evaluate.
+Determine if this code can be meaningfully evaluated using the given criteria:
+- Return True if the criteria can reasonably evaluate the code, even if some parts of the code fall outside the criteria's scope.
+- Return True if at least 40% of the code content is relevant to what the criteria is designed to assess.
+- Only return False if the criteria is fundamentally mismatched with the code (e.g., CSS styling criteria being applied to pure Python logic with no styling elements, or database query criteria applied to a frontend component with no data access).
+
+
 """
 )
 
