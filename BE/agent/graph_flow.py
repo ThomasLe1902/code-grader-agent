@@ -135,68 +135,114 @@ async def grade_streaming_fn(
     criterias_list: list[str],
     project_description: str = None,
 ):
-    number_of_criteria = len(criterias_list) * 2 + 1
-    initial_input = {
-        "selected_files": file_paths,
-        "criterias_list": criterias_list,
-        "folder_structure_criteria": folder_structure_criteria,
-        "project_description": project_description,
-    }
-    processing_criteria = 0
-    async for event in agent_graph.astream(
-        input=initial_input,
-        subgraphs=True,
-    ):
-        _, sub_event = event
+    try:
+        number_of_criteria = len(criterias_list) * 2 + 1
+        initial_input = {
+            "selected_files": file_paths,
+            "criterias_list": criterias_list,
+            "folder_structure_criteria": folder_structure_criteria,
+            "project_description": project_description,
+        }
+        processing_criteria = 0
 
-        main_key: str = list(sub_event.keys())[0]
-        logger.info(f"Processing step '{main_key}'")
-        sub_event: dict = sub_event[main_key]
-        if not sub_event:
-            continue
-        criteria = sub_event.get("criteria_index", None)
-        if processing_criteria < number_of_criteria:
-            processing_criteria += 1
+        async for event in agent_graph.astream(
+            input=initial_input,
+            subgraphs=True,
+        ):
+            try:
+                _, sub_event = event
+                main_key: str = list(sub_event.keys())[0]
+                logger.info(f"Processing step '{main_key}'")
 
-        if not criteria:
-            if main_key == "grade_folder_structure":
-                project_structure_response = json.dumps(
+                sub_event: dict = sub_event[main_key]
+                if not sub_event:
+                    continue
+
+                criteria = sub_event.get("criteria_index", None)
+                if processing_criteria < number_of_criteria:
+                    processing_criteria += 1
+
+                if not criteria:
+                    try:
+                        if main_key == "grade_folder_structure":
+                            project_structure_response = json.dumps(
+                                {
+                                    "type": "folder_structure",
+                                    "output": sub_event.get(
+                                        "output_folder_structure", ""
+                                    ),
+                                    "percentage": int(
+                                        (processing_criteria / number_of_criteria) * 100
+                                    ),
+                                },
+                                ensure_ascii=False,
+                            )
+                            yield project_structure_response + "\n\n"
+                            continue
+
+                        final_response = json.dumps(
+                            {
+                                "type": "final",
+                                "output": sub_event.get("output", ""),
+                                "percentage": 100,
+                            },
+                            ensure_ascii=False,
+                        )
+                        yield final_response + "\n\n"
+                        continue
+                    except json.JSONEncodeError as je:
+                        logger.error(f"JSON encoding error: {str(je)}")
+                        yield json.dumps(
+                            {
+                                "type": "error",
+                                "output": "Error encoding response",
+                                "percentage": 0,
+                            }
+                        ) + "\n\n"
+                        continue
+
+                main_key_processed = main_key.replace("_", " ")
+                try:
+                    noti_response = json.dumps(
+                        {
+                            "type": "noti",
+                            "output": f"Processing step '{main_key_processed}' of criteria index {criteria}",
+                            "percentage": int(
+                                (processing_criteria / number_of_criteria) * 100
+                            ),
+                        },
+                        ensure_ascii=False,
+                    )
+                    logger.info(
+                        f"Processing step '{main_key_processed}' of criteria index {criteria}*"
+                    )
+                    yield noti_response + "\n\n"
+                except json.JSONEncodeError as je:
+                    logger.error(f"JSON encoding error in notification: {str(je)}")
+                    yield json.dumps(
+                        {
+                            "type": "error",
+                            "output": "Error creating notification",
+                            "percentage": 0,
+                        }
+                    ) + "\n\n"
+
+            except Exception as e:
+                logger.error(f"Error processing event: {str(e)}")
+                yield json.dumps(
                     {
-                        "type": "folder_structure",
-                        "output": sub_event.get("output_folder_structure", ""),
-                        "percentage": int(
-                            (processing_criteria / number_of_criteria) * 100
-                        ),
-                    },
-                    ensure_ascii=False,
-                )
-                yield project_structure_response + "\n\n"
-                continue
+                        "type": "error",
+                        "output": f"Error processing step: {str(e)}",
+                        "percentage": 0,
+                    }
+                ) + "\n\n"
 
-            final_response = json.dumps(
-                {
-                    "type": "final",
-                    "output": sub_event.get("output", ""),
-                    "percentage": 100,
-                },
-                ensure_ascii=False,
-            )
-            yield final_response + "\n\n"
-            continue
-        main_key_processed = main_key.replace("_", " ")
-
-        noti_response = json.dumps(
-            (
-                {
-                    "type": "noti",
-                    "output": f"Processing step '{main_key_processed}' of criteria index {criteria}",
-                    "percentage": int((processing_criteria / number_of_criteria) * 100),
-                }
-            ),
-            ensure_ascii=False,
-        )
-        logger.info(
-            f"Processing step '{main_key_processed}' of criteria index {criteria}*"
-        )
-
-        yield noti_response + "\n\n"
+    except Exception as e:
+        logger.error(f"Fatal error in grade_streaming_fn: {str(e)}")
+        yield json.dumps(
+            {
+                "type": "error",
+                "output": "Fatal error occurred during grading",
+                "percentage": 0,
+            }
+        ) + "\n\n"
