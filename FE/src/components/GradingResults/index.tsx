@@ -195,7 +195,7 @@ const GradingResultView: React.FC<{
         return {
           "File Name": fileName,
           Rating: ratingText,
-          "Rating Value": item.rating,
+          "Rating Value": String(item.rating),
           Comments: item.comment,
           Evaluation: plainTextEval,
         };
@@ -203,7 +203,7 @@ const GradingResultView: React.FC<{
       data.push({
         "File Name": "",
         Rating: "",
-        "Rating Value": 0,
+        "Rating Value": "",
         Comments: "",
         Evaluation: "",
       });
@@ -212,7 +212,7 @@ const GradingResultView: React.FC<{
         const overallGradeRow = {
           "File Name": "Overall Grade",
           Rating: "",
-          "Rating Value": 0,
+          "Rating Value": "",
           Comments: gradeOverall[index]
             .replace(/\*\*/g, "")
             .replace(/#/g, "")
