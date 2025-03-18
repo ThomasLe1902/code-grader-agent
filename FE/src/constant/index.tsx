@@ -8,6 +8,8 @@ export const EXTENSION_OPTIONS = [
   { label: "Markdown", value: ".md" },
   { label: "Text", value: ".txt" },
   { label: "Environment", value: ".env" },
+  { label: "Gitignore", value: ".gitignore" },
+  { label: "Dockerfile", value: ".dockerfile" },
 
   { label: "JavaScript", value: ".js" },
   { label: "TypeScript", value: ".ts" },
@@ -35,8 +37,14 @@ export const EXTENSION_OPTIONS = [
 ];
 export const DEFAULT_CRITERIA_FE = [
   `Project Setup & Environment
-* Proper Folder Structure: Organized project structure (e.g., components/, pages/, hooks/, utils/).Separation of concerns (API calls, UI logic, reusable components).
-* Environment Variables Handling: Sensitive keys or configurations are handled via .env (not hardcoded).`,
+  * Proper Folder Structure: Organized project structure (e.g., components/, pages/, hooks/, utils/). Separation of concerns (API calls, UI logic, reusable components).
+  * Environment Variables Handling: Sensitive keys or configurations are handled via .env (not hardcoded).
+  * Package Management: 
+    - Should not include node_modules/, .venv/, venv/, env/, dist/, build/ folders
+    - Rate 0 or Fail if contains environment-related folders
+  * Git Configuration:
+    - Should have proper .gitignore
+    - Should ignore all environment-related folders`,
 
   `Code Quality & Best Practices:
 * Clean & Readable Code: Proper indentation, formatting, and structure. Meaningful variable and function names.
@@ -72,6 +80,12 @@ export const DEFAULT_CRITERIA_BE = [
       +  Aspect: Modularity, maintainability, reusability, clarity, testing.
       +  Example: Pattern, API design.
 * Environment Variables Handling: Sensitive keys or configurations are handled via .env (not hardcoded).
+* Package Management: 
+  - Should not include node_modules/, .venv/, venv/, env/, dist/, build/ folders
+  - Rate 0 or Fail if contains environment-related folders
+* Git Configuration:
+  - Should have proper .gitignore
+  - Should ignore all environment-related folders
 `,
 
   `Code Quality & Best Practices:
