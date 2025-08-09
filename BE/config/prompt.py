@@ -58,9 +58,11 @@ Inputs:
 ```
 
 Determine if this code can be meaningfully evaluated using the given criteria:
-- Return True if the criteria can reasonably evaluate the code, even if some parts of the code fall outside the criteria's scope.
-- Return True if at least 40% of the code content is relevant to what the criteria is designed to assess.
-- Only return False if the criteria is fundamentally mismatched with the code (e.g., CSS styling criteria being applied to pure Python logic with no styling elements, or database query criteria applied to a frontend component with no data access).
+- Return "TRUE" if the criteria can reasonably evaluate the code, even if some parts of the code fall outside the criteria's scope.
+- Return "TRUE" if at least 40% of the code content is relevant to what the criteria is designed to assess.
+- Only return "FALSE" if the criteria is fundamentally mismatched with the code (e.g., CSS styling criteria being applied to pure Python logic with no styling elements, or database query criteria applied to a frontend component with no data access).
+
+Answer with just "TRUE" or "FALSE":
 
 
 """
@@ -92,6 +94,8 @@ Review Format:
    - 3: Average
    - 4: Good
    - 5: Excellent
+
+IMPORTANT: End your response with "RATING: X" where X is the numeric rating (1-5).
 
                                            
 ##Code:

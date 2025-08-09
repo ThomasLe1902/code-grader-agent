@@ -36,7 +36,7 @@ export const apiService = {
     criteriasList: string[],
     projectDescription: string
   ) => {
-    const url = new URL(`${API_BASE_URL}/grade-code-stream`);
+    const url = new URL(`${API_BASE_URL}/grade-code-stream/`);
     return fetch(url, {
       method: "POST",
       headers: {
@@ -49,6 +49,28 @@ export const apiService = {
         project_description: projectDescription,
       }),
     });
+  },
+  gradeCodeSimple: async (
+    selectedFiles: string[],
+    folder_structure_criteria: string,
+    criteriasList: string[],
+    projectDescription: string
+  ) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/grade-code-simple/`,
+        {
+          selected_files: selectedFiles,
+          folder_structure_criteria: folder_structure_criteria,
+          criterias_list: criteriasList,
+          project_description: projectDescription,
+        }
+      );
+      return { data: response.data, error: null };
+    } catch (error) {
+      console.error("Error grading code:", error);
+      return { data: null, error: "Failed to grade code" };
+    }
   },
   generateProjectDescription: async (selectedFiles: string[]) => {
     try {

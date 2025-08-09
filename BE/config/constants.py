@@ -69,7 +69,6 @@ SUPPORTED_EXTENSIONS = [
     # Dart/Flutter
     ".dart",
     # Other
-    ".md",
     ".txt",
     ".env",
 ]

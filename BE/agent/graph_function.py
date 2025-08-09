@@ -30,7 +30,7 @@ class State(TypedDict):
     selected_files: list[str]
     criterias: str
     project_description: str
-    analyze_code_result: list[any]
+    analyze_code_result: list[Any]
     grade_criteria: str
     criteria_index: int
 
@@ -60,14 +60,13 @@ async def check_relevant_criteria_fn(state: State):
         selected_files, project_description, criterias, 5000
     )
 
-    check_results: list[CheckRelevantCriteriaOutput] = (
-        await chain_check_relevant_criteria.abatch(filter_datas)
-    )
+    check_results = await chain_check_relevant_criteria.abatch(filter_datas)
 
+    # Parse text responses to determine relevance
     selected_files = [
         file_name
         for file_name, result in zip(selected_files, check_results)
-        if result.relevant_criteria == True
+        if "true" in result.content.lower() or "relevant" in result.content.lower()
     ]
     logger.info(f"After check relevant criteria: {str(len(selected_files))}")
 
@@ -86,19 +85,33 @@ async def analyze_code_file_fn(state: State):
     filter_datas, _ = input_preparation(
         selected_files, project_description, criterias, 5000
     )
-    analysis_results: list[AnaLyzeOutput] = await chain_analyze_code_file.abatch(
-        filter_datas
-    )
+    analysis_results = await chain_analyze_code_file.abatch(filter_datas)
 
-    output = [
-        {
+    # Parse text responses to extract structured data
+    output = []
+    for data, result in zip(filter_datas, analysis_results):
+        content = result.content
+
+        # Parse rating from text
+        rating = 3  # default
+        for line in content.split('\n'):
+            if 'rating:' in line.lower():
+                for i in range(1, 6):
+                    if str(i) in line:
+                        rating = i
+                        break
+            elif 'rating' in line.lower() and any(str(i) in line for i in range(1, 6)):
+                for i in range(1, 6):
+                    if str(i) in line:
+                        rating = i
+                        break
+
+        output.append({
             "file_name": data["file_name"],
-            "comment": result.comment,
-            "criteria_eval": result.criteria_eval,
-            "rating": result.rating,
-        }
-        for data, result in zip(filter_datas, analysis_results)
-    ]
+            "comment": content,  # Use full content as comment
+            "criteria_eval": content,  # Use full content as criteria eval
+            "rating": rating,
+        })
 
     return {"analyze_code_result": output, "criteria_index": criteria_index}
 

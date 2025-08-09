@@ -11,6 +11,11 @@ def list_code_files_in_repository(
     repo_url: str, extensions: List[str]
 ) -> Iterable[str]:
     """Clone the GitHub repository and return a list of code files with the specified extensions."""
+    if not repo_url or not repo_url.strip():
+        raise ValueError("Repository URL cannot be empty")
+    if not extensions:
+        raise ValueError("Extensions list cannot be empty")
+
     local_path = clone_github_repository(repo_url)
     return get_all_files_in_directory(local_path, extensions)
 
@@ -26,19 +31,52 @@ def clone_github_repository(repo_url: str) -> str:
 
     Raises:
         git.GitCommandError: If cloning fails
+        ValueError: If repo_url is invalid
     """
+    if not repo_url or not repo_url.strip():
+        raise ValueError("Repository URL cannot be empty")
+
+    # Basic URL validation
+    if not (repo_url.startswith("http://") or repo_url.startswith("https://")):
+        raise ValueError("Repository URL must start with http:// or https://")
+
     if not os.path.exists(REPO_FOLDER):
         os.makedirs(REPO_FOLDER)
 
     repo_name = repo_url.split("/")[-1]
-    local_path = os.path.join(REPO_FOLDER, repo_name)
+    if not repo_name:
+        raise ValueError("Invalid repository URL: cannot extract repository name")
+
+    # Add timestamp to avoid conflicts
+    import time
+    timestamp = int(time.time())
+    local_path = os.path.join(REPO_FOLDER, f"{repo_name}_{timestamp}")
 
     # Remove existing repository if it exists
     if os.path.exists(local_path):
         import shutil
+        import stat
 
-        shutil.rmtree(local_path)
-        logger.info(f"Removed existing repository at {local_path}")
+        def handle_remove_readonly(func, path, exc):
+            """Handle readonly files on Windows"""
+            if os.path.exists(path):
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+
+        try:
+            shutil.rmtree(local_path, onerror=handle_remove_readonly)
+            logger.info(f"Removed existing repository at {local_path}")
+        except Exception as e:
+            logger.warning(f"Could not remove existing repository: {e}")
+            # Try alternative approach - rename the directory
+            import time
+            backup_path = f"{local_path}_backup_{int(time.time())}"
+            try:
+                os.rename(local_path, backup_path)
+                logger.info(f"Moved existing repository to {backup_path}")
+            except Exception as e2:
+                logger.error(f"Could not move existing repository: {e2}")
+                raise e
 
     # Clone fresh copy
     logger.info(f"Cloning repository from {repo_url}")

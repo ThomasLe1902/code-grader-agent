@@ -9,6 +9,37 @@ from .graph_function import (
 import json
 from loguru import logger
 
+
+def safe_json_content(content):
+    """Safely prepare content for JSON encoding"""
+    if content is None:
+        return "Processing..."
+
+    if isinstance(content, list):
+        # For lists, create a simple summary
+        return f"Analysis completed for {len(content)} files."
+    elif not isinstance(content, str):
+        content = str(content)
+
+    # Be very aggressive with truncation to prevent crashes
+    if len(content) > 1000:
+        content = content[:1000] + "... (truncated)"
+
+    # Remove ALL potentially problematic characters
+    import re
+    # Keep only basic alphanumeric, spaces, and safe punctuation
+    content = re.sub(r'[^\w\s\.\,\!\?\-\(\)\[\]\/\:\;]', ' ', content)
+
+    # Replace multiple spaces with single space
+    content = re.sub(r'\s+', ' ', content)
+
+    # Final safety check
+    content = content.strip()
+    if not content:
+        return "Processing completed."
+
+    return content
+
 flow = StateGraph(State)
 
 
@@ -85,17 +116,15 @@ class AgentCodeGraderMultiCriterias:
         self.flow.add_node("agent_processing", agent_processing_fn)
 
     def edge(self):
-        # self.flow.add_conditional_edges(
-        #     START,
-        #     self.routing_before_start,
-        #     {
-        #         "grade_folder_structure": "grade_folder_structure",
-        #         "agent_processing": "agent_processing",
-        #     },
-        # )
-        self.flow.add_edge(START, "grade_folder_structure")
-        self.flow.add_edge(START, "agent_processing")
-        self.flow.add_edge("grade_folder_structure", END)
+        self.flow.add_conditional_edges(
+            START,
+            self.routing_before_start,
+            {
+                "grade_folder_structure": "grade_folder_structure",
+                "agent_processing": "agent_processing",
+            },
+        )
+        self.flow.add_edge("grade_folder_structure", "agent_processing")
         self.flow.add_edge("agent_processing", END)
 
     def __call__(self) -> CompiledStateGraph:
@@ -165,12 +194,14 @@ async def grade_streaming_fn(
                 if not criteria:
                     try:
                         if main_key == "grade_folder_structure":
+                            output_content = safe_json_content(
+                                sub_event.get("output_folder_structure", "")
+                            )
+
                             project_structure_response = json.dumps(
                                 {
                                     "type": "folder_structure",
-                                    "output": sub_event.get(
-                                        "output_folder_structure", ""
-                                    ),
+                                    "output": output_content,
                                     "percentage": int(
                                         (processing_criteria / number_of_criteria) * 100
                                     ),
@@ -180,10 +211,13 @@ async def grade_streaming_fn(
                             yield project_structure_response + "\n\n"
                             continue
 
+                        # Safely handle final output
+                        final_output = safe_json_content(sub_event.get("output", ""))
+
                         final_response = json.dumps(
                             {
                                 "type": "final",
-                                "output": sub_event.get("output", ""),
+                                "output": final_output,
                                 "percentage": 100,
                             },
                             ensure_ascii=False,
@@ -203,16 +237,17 @@ async def grade_streaming_fn(
 
                 main_key_processed = main_key.replace("_", " ")
                 try:
-                    noti_response = json.dumps(
-                        {
-                            "type": "noti",
-                            "output": f"Processing step '{main_key_processed}' of criteria index {criteria}",
-                            "percentage": int(
-                                (processing_criteria / number_of_criteria) * 100
-                            ),
-                        },
-                        ensure_ascii=False,
-                    )
+                    # Ensure safe string formatting
+                    notification_message = f"Processing step '{main_key_processed}' of criteria index {criteria}"
+
+                    # Simple, safe notification
+                    simple_notification = {
+                        "type": "noti",
+                        "output": f"Step {criteria + 1} of {number_of_criteria}",
+                        "percentage": min(int((processing_criteria / number_of_criteria) * 100), 99),
+                    }
+
+                    noti_response = json.dumps(simple_notification, ensure_ascii=True)
                     logger.info(
                         f"Processing step '{main_key_processed}' of criteria index {criteria}*"
                     )
@@ -224,7 +259,18 @@ async def grade_streaming_fn(
                             "type": "error",
                             "output": "Error creating notification",
                             "percentage": 0,
-                        }
+                        },
+                        ensure_ascii=False,
+                    ) + "\n\n"
+                except Exception as e:
+                    logger.error(f"Error in notification processing: {str(e)}")
+                    yield json.dumps(
+                        {
+                            "type": "error",
+                            "output": "Processing error",
+                            "percentage": 0,
+                        },
+                        ensure_ascii=False,
                     ) + "\n\n"
 
             except Exception as e:

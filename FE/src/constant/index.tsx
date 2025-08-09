@@ -1,7 +1,7 @@
 import { StatusConfig } from "../types";
 
-export const API_BASE_URL = "http://127.0.0.1:8000";
-export const DEFAULT_REPO_URL =
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+export const DEFAULT_REPO_URL = import.meta.env.VITE_DEFAULT_REPO_URL ||
   "https://github.com/lmhdev/web-dev-tech-assessment";
 
 export const EXTENSION_OPTIONS = [
@@ -33,7 +33,6 @@ export const EXTENSION_OPTIONS = [
 
   { label: "JSON", value: ".json" },
   { label: "YAML", value: ".yml" },
-  { label: "ENV", value: ".env" },
 ];
 export const DEFAULT_CRITERIA_FE = [
   `Project Setup & Environment
