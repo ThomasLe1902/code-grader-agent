@@ -1,9 +1,0 @@
-.env
-**/__pycache__/
-.vscode
-.DS_Store
-repo
-repos
-test.ipynb
-test.py
-a.ipynb
